@@ -2,7 +2,7 @@ import * as Location from 'expo-location';
 import { useFonts } from 'expo-font';
 import { useEffect, useRef, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Animated, Dimensions, PanResponder, StyleSheet, Text, View } from 'react-native';
+import { Animated, Dimensions, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
 
 const SCREEN_W = Dimensions.get('window').width;
 const CARD_W = SCREEN_W - 56; // container paddingHorizontal: 28 * 2
@@ -101,10 +101,38 @@ interface Weather {
   code: number;
 }
 
+function whatToWear(tempC: number, code: number): string {
+  const rain = code >= 51 && code <= 82;
+  const snow = code >= 71 && code <= 75;
+  const thunder = code >= 95;
+  if (snow) return 'Heavy coat, boots, and layers. It\'s snowing out there.';
+  if (thunder) return 'Stay in if you can. If not, waterproof jacket and closed shoes.';
+  if (rain) return 'Bring an umbrella. A light rain jacket works well.';
+  if (tempC <= 0) return 'Bundle up — coat, scarf, gloves. It\'s freezing.';
+  if (tempC <= 10) return 'A warm jacket and maybe a light layer underneath.';
+  if (tempC <= 16) return 'Light jacket or a hoodie should do it.';
+  if (tempC <= 22) return 'A light layer or long sleeves. Pretty comfortable out.';
+  if (tempC <= 28) return 'T-shirt weather. Maybe bring a light layer for later.';
+  return 'It\'s hot. Keep it light — shorts and a tee.';
+}
+
 function WeatherWidget({ font, height }: { font: string; height?: number }) {
   const [weather, setWeather] = useState<Weather | null>(null);
   const [error, setError] = useState(false);
   const [useFahrenheit, setUseFahrenheit] = useState(true);
+  const [flipped, setFlipped] = useState(false);
+  const flipAnim = useRef(new Animated.Value(0)).current;
+
+  const flip = () => {
+    const toValue = flipped ? 0 : 1;
+    Animated.spring(flipAnim, { toValue, useNativeDriver: true, friction: 8 }).start();
+    setFlipped(f => !f);
+  };
+
+  const frontRotate = flipAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
+  const backRotate = flipAnim.interpolate({ inputRange: [0, 1], outputRange: ['180deg', '360deg'] });
+  const frontOpacity = flipAnim.interpolate({ inputRange: [0.4, 0.5], outputRange: [1, 0] });
+  const backOpacity = flipAnim.interpolate({ inputRange: [0.4, 0.5], outputRange: [0, 1] });
 
   useEffect(() => {
     (async () => {
@@ -137,27 +165,38 @@ function WeatherWidget({ font, height }: { font: string; height?: number }) {
     : '—';
   const unit = useFahrenheit ? 'F' : 'C';
 
+  const sizeStyle = height ? { height, width: height } : undefined;
+
   return (
-    <View style={[wx.shadow, height ? { height, width: height } : undefined]}>
-      <LinearGradient
-        colors={[darker, mid, lightest]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[wx.card, height ? { height, width: height } : undefined]}
-      >
-        <View style={wx.inner}>
-          <Text style={wx.icon}>{icon}</Text>
-          <View style={wx.tempRow}>
-            <Text style={[wx.temp, { fontFamily: font }]}>{displayTemp}</Text>
-            <Text
-              onPress={() => setUseFahrenheit(f => !f)}
-              style={[wx.unit, { fontFamily: font }]}
-            >{unit}</Text>
-          </View>
-          <Text style={[wx.label, { fontFamily: font }]}>{label}</Text>
-        </View>
-      </LinearGradient>
-    </View>
+    <Pressable onPress={flip}>
+      <View style={[wx.shadow, sizeStyle]}>
+        {/* Front */}
+        <Animated.View style={[wx.face, sizeStyle, { opacity: frontOpacity, transform: [{ rotateY: frontRotate }] }]}>
+          <LinearGradient colors={[darker, mid, lightest]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[wx.card, sizeStyle]}>
+            <View style={wx.inner}>
+              <Text style={wx.icon}>{icon}</Text>
+              <View style={wx.tempRow}>
+                <Text style={[wx.temp, { fontFamily: font }]}>{displayTemp}</Text>
+                <Text onPress={e => { e.stopPropagation(); setUseFahrenheit(f => !f); }} style={[wx.unit, { fontFamily: font }]}>{unit}</Text>
+              </View>
+              <Text style={[wx.label, { fontFamily: font }]}>{label}</Text>
+            </View>
+          </LinearGradient>
+        </Animated.View>
+
+        {/* Back */}
+        <Animated.View style={[wx.face, wx.faceBack, sizeStyle, { opacity: backOpacity, transform: [{ rotateY: backRotate }] }]}>
+          <LinearGradient colors={[darker, mid, lightest]} start={{ x: 1, y: 1 }} end={{ x: 0, y: 0 }} style={[wx.card, sizeStyle]}>
+            <View style={wx.inner}>
+              <Text style={[wx.wearTitle, { fontFamily: font }]}>What to wear</Text>
+              <Text style={[wx.wearText, { fontFamily: font }]}>
+                {weather ? whatToWear(tempC, weather.code) : '...'}
+              </Text>
+            </View>
+          </LinearGradient>
+        </Animated.View>
+      </View>
+    </Pressable>
   );
 }
 
@@ -201,7 +240,9 @@ export default function HomeScreen() {
           </View>
         </LinearGradient>
       </View>
-      <WeatherWidget font="Archive" height={cardHeight} />
+      <View style={{ alignSelf: 'flex-start' }}>
+        <WeatherWidget font="Archive" height={cardHeight} />
+      </View>
       <SlideBar />
     </View>
   );
@@ -258,6 +299,15 @@ const wx = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 14,
   },
+  face: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    backfaceVisibility: 'hidden',
+  },
+  faceBack: {
+    // sits on top when flipped
+  },
   card: {
     borderRadius: 20,
     paddingVertical: 16,
@@ -297,6 +347,19 @@ const wx = StyleSheet.create({
     letterSpacing: 1,
     opacity: 0.8,
     marginTop: 2,
+  },
+  wearTitle: {
+    fontSize: 13,
+    color: '#fcfbff',
+    opacity: 0.7,
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  wearText: {
+    fontSize: 15,
+    color: '#fcfbff',
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });
 
