@@ -4,15 +4,27 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Palette } from '@/constants/theme';
 
-const PINK = Palette.amber;
+const S = 3;
 
 function GlowText({ text, style }: { text: string; style: object }) {
+  const outline = { color: Palette.amber };
+  const offsets = [
+    { width: -S, height: -S }, { width: 0, height: -S }, { width: S, height: -S },
+    { width: -S, height: 0 },                             { width: S, height: 0 },
+    { width: -S, height: S  }, { width: 0, height: S  }, { width: S, height: S  },
+  ];
   return (
     <View>
-      <Text style={[style, { textShadowColor: PINK, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 20, opacity: 0.22 }]}>{text}</Text>
-      <Text style={[style, { textShadowColor: PINK, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 10, opacity: 0.4, position: 'absolute' }]}>{text}</Text>
-      <Text style={[style, { textShadowColor: PINK, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 5, position: 'absolute' }]}>{text}</Text>
-      <Text style={[style, { position: 'absolute' }]}>{text}</Text>
+      {offsets.map((offset, i) => (
+        <Text key={i} style={[style, outline, { textShadowColor: Palette.amber, textShadowOffset: offset, textShadowRadius: 1, position: i === 0 ? undefined : 'absolute' }]}>{text}</Text>
+      ))}
+      <Text style={[style, {
+        color: '#ffffff',
+        position: 'absolute',
+        textShadowColor: 'rgba(0,0,0,0.35)',
+        textShadowOffset: { width: 2, height: 3 },
+        textShadowRadius: 6,
+      }]}>{text}</Text>
     </View>
   );
 }
@@ -20,6 +32,7 @@ function GlowText({ text, style }: { text: string; style: object }) {
 export default function HomeScreen() {
   const [fontsLoaded] = useFonts({
     CoreBandi: require('@/assets/fonts/CoreBandi.ttf'),
+    LilitaOne: require('@/assets/fonts/LilitaOne.ttf'),
   });
 
   const [time, setTime] = useState({ clock: '', period: '' });
@@ -41,9 +54,13 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.timeWrapper}>
-        <GlowText text={time.clock} style={styles.time} />
-        <GlowText text={time.period} style={styles.period} />
+      <View style={styles.cardShadow}>
+        <View style={styles.card}>
+          <View style={styles.timeWrapper}>
+            <GlowText text={time.clock} style={styles.time} />
+            <GlowText text={time.period} style={styles.period} />
+          </View>
+        </View>
       </View>
     </View>
   );
@@ -55,20 +72,36 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
     alignItems: 'center',
     paddingTop: 130,
+    paddingHorizontal: 28,
+  },
+  cardShadow: {
+    alignSelf: 'stretch',
+    borderRadius: 28,
+    shadowColor: Palette.amber,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+  },
+  card: {
+    backgroundColor: Palette.amber,
+    borderRadius: 28,
+    paddingVertical: 18,
+    paddingHorizontal: 22,
+    alignItems: 'center',
   },
   timeWrapper: {
     alignItems: 'center',
   },
   time: {
-    fontFamily: 'CoreBandi',
-    fontSize: 124,
-    color: PINK,
+    fontFamily: 'LilitaOne',
+    fontSize: 80,
+    color: '#ffffff',
     letterSpacing: 4,
   },
   period: {
-    fontFamily: 'CoreBandi',
-    fontSize: 35,
-    color: PINK,
+    fontFamily: 'LilitaOne',
+    fontSize: 22,
+    color: '#ffffff',
     letterSpacing: 6,
     marginTop: -8,
   },
