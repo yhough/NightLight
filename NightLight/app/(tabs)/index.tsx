@@ -4,14 +4,14 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Palette } from '@/constants/theme';
 
-const PINK = Palette.blush;
+const PINK = Palette.amber;
 
 function GlowText({ text, style }: { text: string; style: object }) {
   return (
     <View>
-      <Text style={[style, { textShadowColor: PINK, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 3, opacity: 0.08 }]}>{text}</Text>
-      <Text style={[style, { textShadowColor: PINK, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 2, opacity: 0.12, position: 'absolute' }]}>{text}</Text>
-      <Text style={[style, { textShadowColor: PINK, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 1, position: 'absolute' }]}>{text}</Text>
+      <Text style={[style, { textShadowColor: PINK, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 20, opacity: 0.22 }]}>{text}</Text>
+      <Text style={[style, { textShadowColor: PINK, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 10, opacity: 0.4, position: 'absolute' }]}>{text}</Text>
+      <Text style={[style, { textShadowColor: PINK, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 5, position: 'absolute' }]}>{text}</Text>
       <Text style={[style, { position: 'absolute' }]}>{text}</Text>
     </View>
   );
@@ -41,16 +41,9 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Nested wrappers for layered box glow */}
-      <View style={styles.glow3}>
-        <View style={styles.glow2}>
-          <View style={styles.glow1}>
-            <View style={styles.box}>
-              <GlowText text={time.clock} style={styles.time} />
-              <GlowText text={time.period} style={styles.period} />
-            </View>
-          </View>
-        </View>
+      <View style={styles.timeWrapper}>
+        <GlowText text={time.clock} style={styles.time} />
+        <GlowText text={time.period} style={styles.period} />
       </View>
     </View>
   );
@@ -61,49 +54,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
     alignItems: 'center',
-    paddingTop: 100,
+    paddingTop: 130,
   },
-  glow3: {
-    borderRadius: 36,
-    shadowColor: PINK,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 40,
-  },
-  glow2: {
-    borderRadius: 36,
-    shadowColor: PINK,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 18,
-  },
-  glow1: {
-    borderRadius: 36,
-    shadowColor: PINK,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 10,
-  },
-  box: {
+  timeWrapper: {
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 36,
-    paddingHorizontal: 40,
-    borderRadius: 36,
-    borderWidth: 4,
-    borderColor: PINK,
   },
   time: {
     fontFamily: 'CoreBandi',
-    fontSize: 128,
+    fontSize: 124,
     color: PINK,
     letterSpacing: 4,
   },
   period: {
     fontFamily: 'CoreBandi',
-    fontSize: 36,
+    fontSize: 35,
     color: PINK,
     letterSpacing: 6,
-    marginTop: 4,
+    marginTop: -8,
   },
 });

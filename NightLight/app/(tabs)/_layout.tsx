@@ -21,14 +21,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
         }}
       />
-      <Tabs.Screen
-        name="morning-wrapped"
-        options={{
-          title: 'Morning Wrapped',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="sun.horizon.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
+<Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',
