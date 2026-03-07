@@ -9,7 +9,7 @@ const tintColorLight = '#0a7ea4';
 const tintColorDark = '#fff';
 
 export const Palette = {
-  charcoal: '#222222',
+  charcoal: '#161616',
   blush: '#f59595',
   amber: '#ffc468',
   cream: '#f7f5f2',

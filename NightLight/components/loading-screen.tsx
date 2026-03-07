@@ -36,7 +36,7 @@ export default function LoadingScreen({ onFinish }: LoadingScreenProps) {
         nativeControls={false}
         allowsFullscreen={false}
         allowsPictureInPicture={false}
-        backgroundColor="#222222"
+        backgroundColor="#000000"
       />
     </View>
   );
@@ -45,7 +45,7 @@ export default function LoadingScreen({ onFinish }: LoadingScreenProps) {
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#222222',
+    backgroundColor: '#000000',
     zIndex: 999,
     alignItems: 'center',
     justifyContent: 'center',
@@ -53,6 +53,6 @@ const styles = StyleSheet.create({
   video: {
     width: 340,
     height: 340,
-    backgroundColor: '#222222',
+    backgroundColor: '#000000',
   },
 });

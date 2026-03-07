@@ -1,98 +1,109 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { useFonts } from 'expo-font';
+import { useEffect, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { Palette } from '@/constants/theme';
+
+const PINK = Palette.blush;
+
+function GlowText({ text, style }: { text: string; style: object }) {
+  return (
+    <View>
+      <Text style={[style, { textShadowColor: PINK, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 3, opacity: 0.08 }]}>{text}</Text>
+      <Text style={[style, { textShadowColor: PINK, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 2, opacity: 0.12, position: 'absolute' }]}>{text}</Text>
+      <Text style={[style, { textShadowColor: PINK, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 1, position: 'absolute' }]}>{text}</Text>
+      <Text style={[style, { position: 'absolute' }]}>{text}</Text>
+    </View>
+  );
+}
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const [fontsLoaded] = useFonts({
+    CoreBandi: require('@/assets/fonts/CoreBandi.ttf'),
+  });
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const [time, setTime] = useState({ clock: '', period: '' });
+
+  useEffect(() => {
+    const update = () => {
+      const now = new Date();
+      const h = now.getHours() % 12 || 12;
+      const m = now.getMinutes().toString().padStart(2, '0');
+      const period = now.getHours() >= 12 ? 'PM' : 'AM';
+      setTime({ clock: `${h}:${m}`, period });
+    };
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  if (!fontsLoaded) return <View style={styles.container} />;
+
+  return (
+    <View style={styles.container}>
+      {/* Nested wrappers for layered box glow */}
+      <View style={styles.glow3}>
+        <View style={styles.glow2}>
+          <View style={styles.glow1}>
+            <View style={styles.box}>
+              <GlowText text={time.clock} style={styles.time} />
+              <GlowText text={time.period} style={styles.period} />
+            </View>
+          </View>
+        </View>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  container: {
+    flex: 1,
+    backgroundColor: '#000000',
     alignItems: 'center',
-    gap: 8,
+    paddingTop: 100,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  glow3: {
+    borderRadius: 36,
+    shadowColor: PINK,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 40,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  glow2: {
+    borderRadius: 36,
+    shadowColor: PINK,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 18,
+  },
+  glow1: {
+    borderRadius: 36,
+    shadowColor: PINK,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 10,
+  },
+  box: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 36,
+    paddingHorizontal: 40,
+    borderRadius: 36,
+    borderWidth: 4,
+    borderColor: PINK,
+  },
+  time: {
+    fontFamily: 'CoreBandi',
+    fontSize: 128,
+    color: PINK,
+    letterSpacing: 4,
+  },
+  period: {
+    fontFamily: 'CoreBandi',
+    fontSize: 36,
+    color: PINK,
+    letterSpacing: 6,
+    marginTop: 4,
   },
 });
