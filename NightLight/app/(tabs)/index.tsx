@@ -16,14 +16,14 @@ const MAX_DRAG = TRACK_WIDTH - THUMB_SIZE - 8;
 
 // Weather code → label + icon
 function weatherLabel(code: number): { label: string; icon: string } {
-  if (code === 0) return { label: 'Clear', icon: '✦' };
-  if (code <= 3) return { label: 'Cloudy', icon: '☁' };
-  if (code <= 48) return { label: 'Foggy', icon: '🌫' };
-  if (code <= 55) return { label: 'Drizzle', icon: '🌦' };
-  if (code <= 65) return { label: 'Rain', icon: '🌧' };
-  if (code <= 75) return { label: 'Snow', icon: '❄' };
-  if (code <= 82) return { label: 'Showers', icon: '🌦' };
-  if (code <= 99) return { label: 'Thunder', icon: '⛈' };
+  if (code === 0) return { label: 'Clear', icon: '☀️' };
+  if (code <= 3) return { label: 'Cloudy', icon: '☁️' };
+  if (code <= 48) return { label: 'Foggy', icon: '🌫️' };
+  if (code <= 55) return { label: 'Drizzle', icon: '🌦️' };
+  if (code <= 65) return { label: 'Rain', icon: '🌧️' };
+  if (code <= 75) return { label: 'Snow', icon: '❄️' };
+  if (code <= 82) return { label: 'Showers', icon: '🌦️' };
+  if (code <= 99) return { label: 'Thunder', icon: '⛈️' };
   return { label: '—', icon: '—' };
 }
 
@@ -104,6 +104,7 @@ interface Weather {
 function WeatherWidget({ font, height }: { font: string; height?: number }) {
   const [weather, setWeather] = useState<Weather | null>(null);
   const [error, setError] = useState(false);
+  const [useFahrenheit, setUseFahrenheit] = useState(true);
 
   useEffect(() => {
     (async () => {
@@ -127,20 +128,33 @@ function WeatherWidget({ font, height }: { font: string; height?: number }) {
 
   const tempC = weather ? (weather.temp - 32) * 5 / 9 : 15;
   const bg = tempColor(tempC);
-  const darker = tempColor(tempC - 8);
+  const mid = tempColor(tempC);
+  const darker = tempColor(tempC - 22);
+  const lightest = tempColor(tempC + 14);
   const { label, icon } = weather ? weatherLabel(weather.code) : { label: '...', icon: '' };
+  const displayTemp = weather
+    ? useFahrenheit ? `${weather.temp}°` : `${Math.round(tempC)}°`
+    : '—';
+  const unit = useFahrenheit ? 'F' : 'C';
 
   return (
     <View style={[wx.shadow, height ? { height, width: height } : undefined]}>
-      <LinearGradient colors={[darker, bg]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[wx.card, height ? { height, width: height } : undefined]}>
-        <View style={wx.row}>
-          <Text style={[wx.temp, { fontFamily: font }]}>
-            {weather ? `${weather.temp}°` : '—'}
-          </Text>
-          <View style={wx.right}>
-            <Text style={wx.icon}>{icon}</Text>
-            <Text style={[wx.label, { fontFamily: font }]}>{label}</Text>
+      <LinearGradient
+        colors={[darker, mid, lightest]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[wx.card, height ? { height, width: height } : undefined]}
+      >
+        <View style={wx.inner}>
+          <Text style={wx.icon}>{icon}</Text>
+          <View style={wx.tempRow}>
+            <Text style={[wx.temp, { fontFamily: font }]}>{displayTemp}</Text>
+            <Text
+              onPress={() => setUseFahrenheit(f => !f)}
+              style={[wx.unit, { fontFamily: font }]}
+            >{unit}</Text>
           </View>
+          <Text style={[wx.label, { fontFamily: font }]}>{label}</Text>
         </View>
       </LinearGradient>
     </View>
@@ -248,32 +262,41 @@ const wx = StyleSheet.create({
     borderRadius: 20,
     paddingVertical: 16,
     paddingHorizontal: 18,
-    justifyContent: 'space-between',
   },
-  row: {
+  inner: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  icon: {
+    fontSize: 34,
+    marginBottom: 2,
+  },
+  tempRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    justifyContent: 'space-between',
+    gap: 4,
   },
   temp: {
-    fontSize: 52,
+    fontSize: 48,
     color: '#fcfbff',
     textShadowColor: 'rgba(0,0,0,0.2)',
     textShadowOffset: { width: 1, height: 2 },
     textShadowRadius: 4,
   },
-  right: {
-    alignItems: 'flex-end',
-    gap: 4,
-  },
-  icon: {
-    fontSize: 28,
+  unit: {
+    fontSize: 20,
+    color: '#fcfbff',
+    opacity: 0.85,
+    marginBottom: 6,
   },
   label: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#fcfbff',
     letterSpacing: 1,
-    opacity: 0.9,
+    opacity: 0.8,
+    marginTop: 2,
   },
 });
 
