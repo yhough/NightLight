@@ -1,5 +1,6 @@
 import { useFonts } from 'expo-font';
 import { useEffect, useState } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Palette } from '@/constants/theme';
@@ -19,7 +20,7 @@ function GlowText({ text, style }: { text: string; style: object }) {
         <Text key={i} style={[style, outline, { textShadowColor: Palette.amber, textShadowOffset: offset, textShadowRadius: 1, position: i === 0 ? undefined : 'absolute' }]}>{text}</Text>
       ))}
       <Text style={[style, {
-        color: '#ffffff',
+        color: '#fcfbff',
         position: 'absolute',
         textShadowColor: 'rgba(0,0,0,0.35)',
         textShadowOffset: { width: 2, height: 3 },
@@ -55,12 +56,17 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.cardShadow}>
-        <View style={styles.card}>
+        <LinearGradient
+          colors={['#f0b83a', Palette.amber, '#fcc95a', '#f0b535']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.card}
+        >
           <View style={styles.timeWrapper}>
             <GlowText text={time.clock} style={styles.time} />
             <GlowText text={time.period} style={styles.period} />
           </View>
-        </View>
+        </LinearGradient>
       </View>
     </View>
   );
@@ -71,7 +77,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
     alignItems: 'center',
-    paddingTop: 130,
+    paddingTop: 100,
     paddingHorizontal: 28,
   },
   cardShadow: {
@@ -95,13 +101,13 @@ const styles = StyleSheet.create({
   time: {
     fontFamily: 'LilitaOne',
     fontSize: 80,
-    color: '#ffffff',
+    color: '#fcfbff',
     letterSpacing: 4,
   },
   period: {
     fontFamily: 'LilitaOne',
     fontSize: 22,
-    color: '#ffffff',
+    color: '#fcfbff',
     letterSpacing: 6,
     marginTop: -8,
   },

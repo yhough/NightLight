@@ -12,7 +12,7 @@ export const Palette = {
   charcoal: '#161616',
   blush: '#FF4B9C',
   amber: '#ffc468',
-  cream: '#f7f5f2',
+  cream: '#fcfbff',
 };
 
 export const Colors = {
