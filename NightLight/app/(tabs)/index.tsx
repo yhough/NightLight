@@ -11,7 +11,7 @@ const CARD_W = SCREEN_W - 56; // container paddingHorizontal: 28 * 2
 import { Palette } from '@/constants/theme';
 
 const S = 3;
-const TRACK_WIDTH = 280;
+const TRACK_WIDTH = CARD_W;
 const THUMB_SIZE = 44;
 const MAX_DRAG = TRACK_WIDTH - THUMB_SIZE - 8;
 
@@ -164,18 +164,26 @@ function GlowText({ text, style }: { text: string; style: object }) {
 function SlideBar() {
   const x = useRef(new Animated.Value(0)).current;
   const lastX = useRef(0);
+  const maxDragRef = useRef(1);
+  const lockedRef = useRef(false);
+  const [maxDrag, setMaxDrag] = useState(1);
+  const [locked, setLocked] = useState(false);
 
   const panResponder = useRef(PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
+    onStartShouldSetPanResponder: () => !lockedRef.current,
+    onMoveShouldSetPanResponder: () => !lockedRef.current,
     onPanResponderMove: (_, g) => {
-      const next = Math.min(Math.max(0, lastX.current + g.dx), MAX_DRAG);
-      x.setValue(next);
+      if (lockedRef.current) return;
+      x.setValue(Math.min(Math.max(0, lastX.current + g.dx), maxDragRef.current));
     },
     onPanResponderRelease: (_, g) => {
-      const next = Math.min(Math.max(0, lastX.current + g.dx), MAX_DRAG);
-      if (next >= MAX_DRAG * 0.85) {
-        Animated.spring(x, { toValue: MAX_DRAG, useNativeDriver: false }).start();
-        lastX.current = MAX_DRAG;
+      if (lockedRef.current) return;
+      const next = Math.min(Math.max(0, lastX.current + g.dx), maxDragRef.current);
+      if (next >= maxDragRef.current * 0.4) {
+        Animated.spring(x, { toValue: maxDragRef.current, useNativeDriver: false }).start();
+        lastX.current = maxDragRef.current;
+        lockedRef.current = true;
+        setLocked(true);
       } else {
         Animated.spring(x, { toValue: 0, useNativeDriver: false }).start();
         lastX.current = 0;
@@ -183,14 +191,18 @@ function SlideBar() {
     },
   })).current;
 
-  const fillWidth = x.interpolate({ inputRange: [0, MAX_DRAG], outputRange: [THUMB_SIZE + 8, TRACK_WIDTH] });
+  const onTrackLayout = (e: { nativeEvent: { layout: { width: number } } }) => {
+    const drag = e.nativeEvent.layout.width - THUMB_SIZE - 8;
+    maxDragRef.current = drag;
+    setMaxDrag(drag);
+  };
 
   return (
     <View style={slider.wrapper}>
-      <Text style={slider.label}>Going out?</Text>
-      <View style={slider.track}>
-        <Animated.View style={[slider.fill, { width: fillWidth }]} />
-        <Animated.View style={[slider.thumb, { transform: [{ translateX: x }] }]} {...panResponder.panHandlers} />
+      <Text style={slider.label}>{locked ? 'See you out there!' : 'Going out?'}</Text>
+      <View style={slider.track} onLayout={onTrackLayout}>
+        <Animated.View style={[slider.fill, { width: x.interpolate({ inputRange: [0, maxDrag], outputRange: [THUMB_SIZE + 8, TRACK_WIDTH + 6], extrapolate: 'clamp' }) }]} />
+        <Animated.View style={[slider.thumb, locked && slider.thumbLocked, { transform: [{ translateX: x }] }]} {...panResponder.panHandlers} />
       </View>
     </View>
   );
@@ -478,10 +490,10 @@ const slider = StyleSheet.create({
   },
   track: {
     width: TRACK_WIDTH,
-    height: THUMB_SIZE + 8,
+    height: THUMB_SIZE + 20,
     backgroundColor: '#1a1a1a',
-    borderRadius: 100,
-    borderWidth: 1.5,
+    borderRadius: 14,
+    borderWidth: 3,
     borderColor: Palette.blush,
     justifyContent: 'center',
     overflow: 'hidden',
@@ -493,17 +505,20 @@ const slider = StyleSheet.create({
     bottom: 0,
     backgroundColor: Palette.blush,
     opacity: 0.25,
-    borderRadius: 100,
+    borderRadius: 10,
   },
   thumb: {
     width: THUMB_SIZE,
-    height: THUMB_SIZE,
-    borderRadius: THUMB_SIZE / 2,
+    height: THUMB_SIZE + 12,
+    borderRadius: 10,
     backgroundColor: Palette.blush,
     marginLeft: 4,
     shadowColor: Palette.blush,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.7,
     shadowRadius: 10,
+  },
+  thumbLocked: {
+    opacity: 0.5,
   },
 });
