@@ -1,10 +1,11 @@
 import * as Location from 'expo-location';
+import { Accelerometer } from 'expo-sensors';
 import { useFonts } from 'expo-font';
 import { useEffect, useRef, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Animated, Dimensions, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
 
-const SCREEN_W = Dimensions.get('window').width;
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const CARD_W = SCREEN_W - 56; // container paddingHorizontal: 28 * 2
 
 import { Palette } from '@/constants/theme';
@@ -13,6 +14,105 @@ const S = 3;
 const TRACK_WIDTH = 280;
 const THUMB_SIZE = 44;
 const MAX_DRAG = TRACK_WIDTH - THUMB_SIZE - 8;
+
+// ── Star field ─────────────────────────────────────────────────────────────
+// Size is skewed small — most are tiny glowing points, a few have visible spikes
+const STAR_DATA = Array.from({ length: 130 }, () => {
+  const t = Math.random();
+  const size = 0.4 + Math.pow(t, 2.2) * 4; // power curve: most stars tiny
+  return {
+    x: Math.random() * SCREEN_W,
+    y: Math.random() * SCREEN_H,
+    size,
+    group: Math.floor(Math.random() * 3) as 0 | 1 | 2,
+    rotation: Math.random() * 45, // random spike orientation
+    coreGlow: size * 1.4,
+    spikeGlow: size * 0.5,
+  };
+});
+
+function StarShape({ size, rotation, coreGlow, spikeGlow }: typeof STAR_DATA[0]) {
+  const spikeLen = size * 2.8;
+  const spikeW = Math.max(0.6, size * 0.14);
+  const coreR = Math.max(1, size * 0.32);
+  const spikeStyle = {
+    position: 'absolute' as const,
+    backgroundColor: '#ffffff',
+    shadowColor: '#ffffff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: spikeGlow,
+  };
+  return (
+    <View style={{ transform: [{ rotate: `${rotation}deg` }] }}>
+      {/* Horizontal spike */}
+      <View style={[spikeStyle, { left: -spikeLen, top: -spikeW / 2, width: spikeLen * 2, height: spikeW }]} />
+      {/* Vertical spike */}
+      <View style={[spikeStyle, { left: -spikeW / 2, top: -spikeLen, width: spikeW, height: spikeLen * 2 }]} />
+      {/* Bright core */}
+      <View style={{
+        position: 'absolute',
+        left: -coreR,
+        top: -coreR,
+        width: coreR * 2,
+        height: coreR * 2,
+        borderRadius: coreR,
+        backgroundColor: '#ffffff',
+        shadowColor: '#ffffff',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 1,
+        shadowRadius: coreGlow,
+      }} />
+    </View>
+  );
+}
+
+function StarField() {
+  const t0 = useRef(new Animated.Value(1.0)).current;
+  const t1 = useRef(new Animated.Value(0.8)).current;
+  const t2 = useRef(new Animated.Value(0.9)).current;
+  const offset = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+
+  useEffect(() => {
+    const loop = (val: Animated.Value, dur: number, min: number, max: number, delay: number) =>
+      Animated.loop(Animated.sequence([
+        Animated.delay(delay),
+        Animated.timing(val, { toValue: min, duration: dur, useNativeDriver: true }),
+        Animated.timing(val, { toValue: max, duration: dur, useNativeDriver: true }),
+      ])).start();
+    loop(t0, 2200, 0.55, 1.0, 0);
+    loop(t1, 3100, 0.45, 1.0, 600);
+    loop(t2, 1900, 0.65, 1.0, 1200);
+
+    Accelerometer.setUpdateInterval(50);
+    const sub = Accelerometer.addListener(({ x, y }) => {
+      Animated.spring(offset, {
+        toValue: { x: x * 18, y: -y * 18 },
+        useNativeDriver: true,
+        damping: 15,
+        stiffness: 80,
+      }).start();
+    });
+    return () => sub.remove();
+  }, []);
+
+  const anims = [t0, t1, t2];
+
+  return (
+    <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+      <Animated.View style={[StyleSheet.absoluteFillObject, { transform: offset.getTranslateTransform() }]}>
+        {STAR_DATA.map((star, i) => (
+          <Animated.View
+            key={i}
+            style={{ position: 'absolute', left: star.x, top: star.y, opacity: anims[star.group] }}
+          >
+            <StarShape {...star} />
+          </Animated.View>
+        ))}
+      </Animated.View>
+    </View>
+  );
+}
 
 // Weather code → label + icon
 function weatherLabel(code: number): { label: string; icon: string } {
@@ -155,7 +255,6 @@ function WeatherWidget({ font, height }: { font: string; height?: number }) {
   if (error) return null;
 
   const tempC = weather ? (weather.temp - 32) * 5 / 9 : 15;
-  const bg = tempColor(tempC);
   const mid = tempColor(tempC);
   const darker = tempColor(tempC - 22);
   const lightest = tempColor(tempC + 14);
@@ -227,6 +326,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
+      <StarField />
       <View style={styles.cardShadow} onLayout={e => setCardHeight(e.nativeEvent.layout.height)}>
         <LinearGradient
           colors={['#f0b83a', Palette.amber, '#fcc95a', '#f0b535']}
@@ -241,6 +341,7 @@ export default function HomeScreen() {
         </LinearGradient>
       </View>
       <View style={{ alignSelf: 'flex-start' }}>
+        <Text style={{ fontFamily: 'Archive', fontSize: 18, color: '#fcfbff', letterSpacing: 1, marginBottom: 10, marginTop: 28 }}>Another great day!</Text>
         <WeatherWidget font="Archive" height={cardHeight} />
       </View>
       <SlideBar />
