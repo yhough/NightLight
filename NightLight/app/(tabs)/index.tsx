@@ -171,39 +171,57 @@ function SlideBar() {
   const [locked, setLocked] = useState(false);
 
   const panResponder = useRef(PanResponder.create({
-    onStartShouldSetPanResponder: () => !lockedRef.current,
-    onMoveShouldSetPanResponder: () => !lockedRef.current,
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
     onPanResponderMove: (_, g) => {
-      if (lockedRef.current) return;
       x.setValue(Math.min(Math.max(0, lastX.current + g.dx), maxDragRef.current));
     },
     onPanResponderRelease: (_, g) => {
-      if (lockedRef.current) return;
       const next = Math.min(Math.max(0, lastX.current + g.dx), maxDragRef.current);
-      if (next >= maxDragRef.current * 0.4) {
-        Animated.spring(x, { toValue: maxDragRef.current, useNativeDriver: false }).start();
-        lastX.current = maxDragRef.current;
-        lockedRef.current = true;
-        setLocked(true);
+      if (lockedRef.current) {
+        // dragging back past 55% unlocks
+        if (next <= maxDragRef.current * 0.55) {
+          Animated.spring(x, { toValue: 0, useNativeDriver: false }).start();
+          lastX.current = 0;
+          lockedRef.current = false;
+          setLocked(false);
+        } else {
+          Animated.spring(x, { toValue: maxDragRef.current, useNativeDriver: false }).start();
+          lastX.current = maxDragRef.current;
+        }
       } else {
-        Animated.spring(x, { toValue: 0, useNativeDriver: false }).start();
-        lastX.current = 0;
+        // sliding past 40% locks
+        if (next >= maxDragRef.current * 0.4) {
+          Animated.spring(x, { toValue: maxDragRef.current, useNativeDriver: false }).start();
+          lastX.current = maxDragRef.current;
+          lockedRef.current = true;
+          setLocked(true);
+        } else {
+          Animated.spring(x, { toValue: 0, useNativeDriver: false }).start();
+          lastX.current = 0;
+        }
       }
     },
   })).current;
 
   const onTrackLayout = (e: { nativeEvent: { layout: { width: number } } }) => {
-    const drag = e.nativeEvent.layout.width - THUMB_SIZE - 8;
+    const drag = e.nativeEvent.layout.width - 68 - 16;
     maxDragRef.current = drag;
     setMaxDrag(drag);
   };
 
+  const labelOpacity = x.interpolate({ inputRange: [0, maxDrag * 0.35], outputRange: [1, 0], extrapolate: 'clamp' });
+
   return (
     <View style={slider.wrapper}>
-      <Text style={slider.label}>{locked ? 'See you out there!' : 'Going out?'}</Text>
       <View style={slider.track} onLayout={onTrackLayout}>
-        <Animated.View style={[slider.fill, { width: x.interpolate({ inputRange: [0, maxDrag], outputRange: [THUMB_SIZE + 8, TRACK_WIDTH + 6], extrapolate: 'clamp' }) }]} />
-        <Animated.View style={[slider.thumb, locked && slider.thumbLocked, { transform: [{ translateX: x }] }]} {...panResponder.panHandlers} />
+        <Animated.View style={[slider.fill, { width: x.interpolate({ inputRange: [0, maxDrag], outputRange: [84, TRACK_WIDTH], extrapolate: 'clamp' }) }]} />
+        <Animated.Text style={[slider.trackLabel, { opacity: labelOpacity }]}>
+          {locked ? 'See you out there!' : 'Going out?'}
+        </Animated.Text>
+        <Animated.View style={[slider.thumb, { transform: [{ translateX: x }] }]} {...panResponder.panHandlers}>
+          <Text style={slider.thumbIcon}>›</Text>
+        </Animated.View>
       </View>
     </View>
   );
@@ -578,46 +596,48 @@ const slider = StyleSheet.create({
   wrapper: {
     alignItems: 'center',
     marginTop: 28,
-    gap: 12,
-  },
-  label: {
-    color: '#fcfbff',
-    fontSize: 18,
-    fontFamily: 'Archive',
-    letterSpacing: 1,
   },
   track: {
     width: TRACK_WIDTH,
-    height: THUMB_SIZE + 20,
-    backgroundColor: '#1a1a1a',
-    borderRadius: 14,
-    borderWidth: 3,
-    borderColor: Palette.blush,
+    height: 84,
+    backgroundColor: 'rgba(255,255,255,0.13)',
+    borderRadius: 42,
     justifyContent: 'center',
-    overflow: 'hidden',
+  },
+  trackLabel: {
+    position: 'absolute',
+    width: '100%',
+    textAlign: 'center',
+    color: '#fcfbff',
+    fontSize: 20,
+    fontFamily: 'Archive',
+    letterSpacing: 1,
   },
   fill: {
     position: 'absolute',
     left: 0,
     top: 0,
     bottom: 0,
-    backgroundColor: Palette.blush,
-    opacity: 0.25,
-    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 42,
   },
   thumb: {
-    width: THUMB_SIZE,
-    height: THUMB_SIZE + 12,
-    borderRadius: 10,
-    backgroundColor: Palette.blush,
-    marginLeft: 4,
-    shadowColor: Palette.blush,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.7,
-    shadowRadius: 10,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: '#ffffff',
+    marginLeft: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
   },
-  thumbLocked: {
-    opacity: 0.5,
+  thumbIcon: {
+    fontSize: 28,
+    color: '#555555',
+    marginTop: -1,
   },
 });
 
