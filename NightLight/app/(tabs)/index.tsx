@@ -1,11 +1,10 @@
 import * as Location from 'expo-location';
-import { Accelerometer } from 'expo-sensors';
 import { useFonts } from 'expo-font';
 import { useEffect, useRef, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Animated, Dimensions, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
 
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+const { width: SCREEN_W } = Dimensions.get('window');
 const CARD_W = SCREEN_W - 56; // container paddingHorizontal: 28 * 2
 
 import { Palette } from '@/constants/theme';
@@ -13,107 +12,7 @@ import { Palette } from '@/constants/theme';
 const S = 3;
 const WIDGET_SIZE = Math.floor((CARD_W - 12) / 2);
 const TRACK_WIDTH = CARD_W;
-const THUMB_SIZE = 44;
-const MAX_DRAG = TRACK_WIDTH - THUMB_SIZE - 8;
 
-// ── Star field ─────────────────────────────────────────────────────────────
-// Size is skewed small — most are tiny glowing points, a few have visible spikes
-const STAR_DATA = Array.from({ length: 130 }, () => {
-  const t = Math.random();
-  const size = 0.4 + Math.pow(t, 2.2) * 4; // power curve: most stars tiny
-  return {
-    x: Math.random() * SCREEN_W,
-    y: Math.random() * SCREEN_H,
-    size,
-    group: Math.floor(Math.random() * 3) as 0 | 1 | 2,
-    rotation: Math.random() * 45, // random spike orientation
-    coreGlow: size * 1.4,
-    spikeGlow: size * 0.5,
-  };
-});
-
-function StarShape({ size, rotation, coreGlow, spikeGlow }: typeof STAR_DATA[0]) {
-  const spikeLen = size * 2.8;
-  const spikeW = Math.max(0.6, size * 0.14);
-  const coreR = Math.max(1, size * 0.32);
-  const spikeStyle = {
-    position: 'absolute' as const,
-    backgroundColor: '#ffffff',
-    shadowColor: '#ffffff',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: spikeGlow,
-  };
-  return (
-    <View style={{ transform: [{ rotate: `${rotation}deg` }] }}>
-      {/* Horizontal spike */}
-      <View style={[spikeStyle, { left: -spikeLen, top: -spikeW / 2, width: spikeLen * 2, height: spikeW }]} />
-      {/* Vertical spike */}
-      <View style={[spikeStyle, { left: -spikeW / 2, top: -spikeLen, width: spikeW, height: spikeLen * 2 }]} />
-      {/* Bright core */}
-      <View style={{
-        position: 'absolute',
-        left: -coreR,
-        top: -coreR,
-        width: coreR * 2,
-        height: coreR * 2,
-        borderRadius: coreR,
-        backgroundColor: '#ffffff',
-        shadowColor: '#ffffff',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 1,
-        shadowRadius: coreGlow,
-      }} />
-    </View>
-  );
-}
-
-function StarField() {
-  const t0 = useRef(new Animated.Value(1.0)).current;
-  const t1 = useRef(new Animated.Value(0.8)).current;
-  const t2 = useRef(new Animated.Value(0.9)).current;
-  const offset = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
-
-  useEffect(() => {
-    const loop = (val: Animated.Value, dur: number, min: number, max: number, delay: number) =>
-      Animated.loop(Animated.sequence([
-        Animated.delay(delay),
-        Animated.timing(val, { toValue: min, duration: dur, useNativeDriver: true }),
-        Animated.timing(val, { toValue: max, duration: dur, useNativeDriver: true }),
-      ])).start();
-    loop(t0, 2200, 0.55, 1.0, 0);
-    loop(t1, 3100, 0.45, 1.0, 600);
-    loop(t2, 1900, 0.65, 1.0, 1200);
-
-    Accelerometer.setUpdateInterval(50);
-    const sub = Accelerometer.addListener(({ x, y }) => {
-      Animated.spring(offset, {
-        toValue: { x: x * 18, y: -y * 18 },
-        useNativeDriver: true,
-        damping: 15,
-        stiffness: 80,
-      }).start();
-    });
-    return () => sub.remove();
-  }, []);
-
-  const anims = [t0, t1, t2];
-
-  return (
-    <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-      <Animated.View style={[StyleSheet.absoluteFillObject, { transform: offset.getTranslateTransform() }]}>
-        {STAR_DATA.map((star, i) => (
-          <Animated.View
-            key={i}
-            style={{ position: 'absolute', left: star.x, top: star.y, opacity: anims[star.group] }}
-          >
-            <StarShape {...star} />
-          </Animated.View>
-        ))}
-      </Animated.View>
-    </View>
-  );
-}
 
 // Weather code → label + icon
 function weatherLabel(code: number): { label: string; icon: string } {
@@ -128,19 +27,9 @@ function weatherLabel(code: number): { label: string; icon: string } {
   return { label: '—', icon: '—' };
 }
 
-// Blend #69AFFF toward darker/lighter based on temp
-function tempColor(tempC: number): string {
-  const base = { r: 0x69, g: 0xAF, b: 0xFF };
-  // cold = darker, hot = lighter
-  const factor = Math.min(Math.max((tempC - 15) / 20, -1), 1); // -1 at ≤-5°C, +1 at ≥35°C
-  const r = Math.round(base.r + factor * (factor > 0 ? (255 - base.r) * 0.35 : base.r * 0.45));
-  const g = Math.round(base.g + factor * (factor > 0 ? (255 - base.g) * 0.35 : base.g * 0.45));
-  const b = Math.round(base.b + factor * (factor > 0 ? (255 - base.b) * 0.35 : base.b * 0.45));
-  return `rgb(${r},${g},${b})`;
-}
 
-function GlowText({ text, style }: { text: string; style: object }) {
-  const outline = { color: Palette.amber };
+function GlowText({ text, style, outlineColor = Palette.amber, fillColor = '#fcfbff' }: { text: string; style: object; outlineColor?: string; fillColor?: string }) {
+  const outline = { color: outlineColor };
   const offsets = [
     { width: -S, height: -S }, { width: 0, height: -S }, { width: S, height: -S },
     { width: -S, height: 0 },                             { width: S, height: 0 },
@@ -149,14 +38,14 @@ function GlowText({ text, style }: { text: string; style: object }) {
   return (
     <View>
       {offsets.map((offset, i) => (
-        <Text key={i} style={[style, outline, { textShadowColor: Palette.amber, textShadowOffset: offset, textShadowRadius: 1, position: i === 0 ? undefined : 'absolute' }]}>{text}</Text>
+        <Text key={i} style={[style, outline, { textShadowColor: outlineColor, textShadowOffset: offset, textShadowRadius: 1, position: i === 0 ? undefined : 'absolute' }]}>{text}</Text>
       ))}
       <Text style={[style, {
-        color: '#fcfbff',
+        color: fillColor,
         position: 'absolute',
-        textShadowColor: 'rgba(0,0,0,0.35)',
-        textShadowOffset: { width: 2, height: 3 },
-        textShadowRadius: 6,
+        textShadowColor: 'rgba(0,0,0,0.1)',
+        textShadowOffset: { width: 1, height: 2 },
+        textShadowRadius: 4,
       }]}>{text}</Text>
     </View>
   );
@@ -286,9 +175,6 @@ function WeatherWidget({ font, height }: { font: string; height?: number }) {
   if (error) return null;
 
   const tempC = weather ? (weather.temp - 32) * 5 / 9 : 15;
-  const mid = tempColor(tempC);
-  const darker = tempColor(tempC - 22);
-  const lightest = tempColor(tempC + 14);
   const { label, icon } = weather ? weatherLabel(weather.code) : { label: '...', icon: '' };
   const displayTemp = weather
     ? useFahrenheit ? `${weather.temp}°` : `${Math.round(tempC)}°`
@@ -302,7 +188,7 @@ function WeatherWidget({ font, height }: { font: string; height?: number }) {
       <View style={[wx.shadow, sizeStyle]}>
         {/* Front */}
         <Animated.View style={[wx.face, sizeStyle, { opacity: frontOpacity, transform: [{ rotateY: frontRotate }] }]}>
-          <LinearGradient colors={[darker, mid, lightest]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[wx.card, sizeStyle]}>
+          <View style={[wx.card, sizeStyle, { backgroundColor: '#FFF5D9' }]}>
             <View style={wx.inner}>
               <Text style={wx.icon}>{icon}</Text>
               <View style={wx.tempRow}>
@@ -311,19 +197,19 @@ function WeatherWidget({ font, height }: { font: string; height?: number }) {
               </View>
               <Text style={[wx.label, { fontFamily: font }]}>{label}</Text>
             </View>
-          </LinearGradient>
+          </View>
         </Animated.View>
 
         {/* Back */}
         <Animated.View style={[wx.face, wx.faceBack, sizeStyle, { opacity: backOpacity, transform: [{ rotateY: backRotate }] }]}>
-          <LinearGradient colors={[darker, mid, lightest]} start={{ x: 1, y: 1 }} end={{ x: 0, y: 0 }} style={[wx.card, sizeStyle]}>
+          <View style={[wx.card, sizeStyle, { backgroundColor: '#FFF5D9' }]}>
             <View style={wx.inner}>
               <Text style={[wx.wearTitle, { fontFamily: font }]}>What to wear</Text>
               <Text style={[wx.wearText, { fontFamily: font }]}>
                 {weather ? whatToWear(tempC, weather.code) : '...'}
               </Text>
             </View>
-          </LinearGradient>
+          </View>
         </Animated.View>
       </View>
     </Pressable>
@@ -405,22 +291,22 @@ function DateWidget({ font, height }: { font: string; height?: number }) {
       <View style={[dw.shadow, sizeStyle]}>
         {/* Front */}
         <Animated.View style={[dw.face, sizeStyle, { opacity: frontOpacity, transform: [{ rotateY: frontRotate }] }]}>
-          <LinearGradient colors={['#ffffff', '#f0eef8', '#e8e6f5']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[dw.card, sizeStyle]}>
+          <View style={[dw.card, sizeStyle, { backgroundColor: '#FFF5D9' }]}>
             <View style={dw.inner}>
               <Text style={[dw.dayName, { fontFamily: font }]}>{dayName}</Text>
               <Text style={[dw.dayNum, { fontFamily: font }]}>{dayNum}</Text>
               <Text style={[dw.month, { fontFamily: font }]}>{month}</Text>
             </View>
-          </LinearGradient>
+          </View>
         </Animated.View>
         {/* Back */}
         <Animated.View style={[dw.face, dw.faceBack, sizeStyle, { opacity: backOpacity, transform: [{ rotateY: backRotate }] }]}>
-          <LinearGradient colors={['#e8e6f5', '#f0eef8', '#ffffff']} start={{ x: 1, y: 1 }} end={{ x: 0, y: 0 }} style={[dw.card, sizeStyle]}>
+          <View style={[dw.card, sizeStyle, { backgroundColor: '#FFF5D9' }]}>
             <View style={dw.inner}>
               <Text style={[dw.factTitle, { fontFamily: font }]}>Did you know?</Text>
               <Text style={[dw.factText, { fontFamily: font }]}>{fact}</Text>
             </View>
-          </LinearGradient>
+          </View>
         </Animated.View>
       </View>
     </Pressable>
@@ -449,23 +335,17 @@ export default function HomeScreen() {
     return () => clearInterval(id);
   }, []);
 
-  if (!fontsLoaded) return <View style={styles.container} />;
+  if (!fontsLoaded) return <LinearGradient colors={['#000000', '#000000', '#0F1F31']} locations={[0, 0.5, 1]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.container} />;
 
   return (
-    <View style={styles.container}>
-      <StarField />
+    <LinearGradient colors={['#000000', '#000000', '#0F1F31']} locations={[0, 0.5, 1]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.container}>
       <View style={styles.cardShadow}>
-        <LinearGradient
-          colors={['#f0b83a', Palette.amber, '#fcc95a', '#f0b535']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.card}
-        >
+        <View style={[styles.card, { backgroundColor: '#FFF5D9' }]}>
           <View style={styles.timeWrapper}>
-            <GlowText text={time.clock} style={styles.time} />
-            <GlowText text={time.period} style={styles.period} />
+            <GlowText text={time.clock} style={styles.time} outlineColor="#000000" fillColor="#000000" />
+            <GlowText text={time.period} style={styles.period} outlineColor="#000000" fillColor="#000000" />
           </View>
-        </LinearGradient>
+        </View>
       </View>
       <View style={{ alignSelf: 'stretch', marginTop: 28 }}>
         <Text style={{ fontFamily: 'Archive', fontSize: 18, color: '#fcfbff', letterSpacing: 1, marginBottom: 10 }}>Another great day!</Text>
@@ -475,14 +355,13 @@ export default function HomeScreen() {
         </View>
       </View>
       <SlideBar />
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
     alignItems: 'center',
     paddingTop: 100,
     paddingHorizontal: 28,
@@ -490,13 +369,13 @@ const styles = StyleSheet.create({
   cardShadow: {
     alignSelf: 'stretch',
     borderRadius: 28,
-    shadowColor: Palette.amber,
+    shadowColor: '#ffffff',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.2,
     shadowRadius: 14,
   },
   card: {
-    backgroundColor: Palette.amber,
+    backgroundColor: '#FFF5D9',
     borderRadius: 28,
     paddingVertical: 30,
     paddingHorizontal: 22,
@@ -508,13 +387,13 @@ const styles = StyleSheet.create({
   time: {
     fontFamily: 'Archive',
     fontSize: 80,
-    color: '#fcfbff',
+    color: '#000000',
     letterSpacing: 4,
   },
   period: {
     fontFamily: 'Archive',
     fontSize: 22,
-    color: '#fcfbff',
+    color: '#000000',
     letterSpacing: 6,
     marginTop: -8,
   },
@@ -523,7 +402,7 @@ const styles = StyleSheet.create({
 const wx = StyleSheet.create({
   shadow: {
     borderRadius: 20,
-    shadowColor: '#69AFFF',
+    shadowColor: '#ffffff',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
     shadowRadius: 14,
@@ -559,36 +438,48 @@ const wx = StyleSheet.create({
   },
   temp: {
     fontSize: 48,
-    color: '#fcfbff',
-    textShadowColor: 'rgba(0,0,0,0.2)',
-    textShadowOffset: { width: 1, height: 2 },
+    color: '#000000',
+    textShadowColor: 'rgba(0,0,0,0.15)',
+    textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
   unit: {
     fontSize: 20,
-    color: '#fcfbff',
-    opacity: 0.85,
+    color: '#000000',
+    opacity: 0.6,
     marginBottom: 6,
+    textShadowColor: 'rgba(0,0,0,0.15)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   label: {
     fontSize: 14,
-    color: '#fcfbff',
+    color: '#000000',
     letterSpacing: 1,
-    opacity: 0.8,
+    opacity: 0.6,
     marginTop: 2,
+    textShadowColor: 'rgba(0,0,0,0.15)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   wearTitle: {
     fontSize: 13,
-    color: '#fcfbff',
-    opacity: 0.7,
+    color: '#000000',
+    opacity: 0.6,
     letterSpacing: 1,
     marginBottom: 8,
+    textShadowColor: 'rgba(0,0,0,0.15)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   wearText: {
     fontSize: 15,
-    color: '#fcfbff',
+    color: '#000000',
     textAlign: 'center',
     lineHeight: 22,
+    textShadowColor: 'rgba(0,0,0,0.15)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
 });
 
@@ -625,7 +516,7 @@ const slider = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFF5D9',
     marginLeft: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -669,31 +560,46 @@ const dw = StyleSheet.create({
   },
   dayName: {
     fontSize: 11,
-    color: '#0f3460',
+    color: '#000000',
     opacity: 0.5,
     letterSpacing: 3,
+    textShadowColor: 'rgba(0,0,0,0.15)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   dayNum: {
     fontSize: 52,
-    color: '#0f3460',
+    color: '#000000',
+    textShadowColor: 'rgba(0,0,0,0.15)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   month: {
     fontSize: 11,
-    color: '#0f3460',
+    color: '#000000',
     opacity: 0.5,
     letterSpacing: 3,
+    textShadowColor: 'rgba(0,0,0,0.15)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   factTitle: {
     fontSize: 11,
-    color: '#0f3460',
+    color: '#000000',
     opacity: 0.5,
     letterSpacing: 1,
     marginBottom: 8,
+    textShadowColor: 'rgba(0,0,0,0.15)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   factText: {
     fontSize: 13,
-    color: '#0f3460',
+    color: '#000000',
     textAlign: 'center',
     lineHeight: 20,
+    textShadowColor: 'rgba(0,0,0,0.15)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
 });
