@@ -11,6 +11,7 @@ const CARD_W = SCREEN_W - 56; // container paddingHorizontal: 28 * 2
 import { Palette } from '@/constants/theme';
 
 const S = 3;
+const WIDGET_SIZE = Math.floor((CARD_W - 12) / 2);
 const TRACK_WIDTH = CARD_W;
 const THUMB_SIZE = 44;
 const MAX_DRAG = TRACK_WIDTH - THUMB_SIZE - 8;
@@ -311,6 +312,103 @@ function WeatherWidget({ font, height }: { font: string; height?: number }) {
   );
 }
 
+// ── Date widget ────────────────────────────────────────────────────────────
+const FUN_FACTS = [
+  "Honey never spoils — edible honey has been found in 3,000-year-old Egyptian tombs.",
+  "A day on Venus is longer than a year on Venus.",
+  "Octopuses have three hearts and blue blood.",
+  "The Eiffel Tower grows about 6 inches taller in summer due to thermal expansion.",
+  "Cleopatra lived closer in time to the Moon landing than to the building of the Great Pyramid.",
+  "Sharks are older than trees — they've existed for over 450 million years.",
+  "There are more possible chess games than atoms in the observable universe.",
+  "A group of flamingos is called a flamboyance.",
+  "The shortest war in history lasted 38 minutes (Anglo-Zanzibar War, 1896).",
+  "Oxford University is older than the Aztec Empire.",
+  "It rains diamonds on Neptune and Uranus.",
+  "Bananas are technically berries, but strawberries are not.",
+  "There are more stars in the universe than grains of sand on all Earth's beaches.",
+  "Wombats produce cube-shaped droppings — the only animal known to do so.",
+  "Time passes slightly faster on the top floor of a building than at street level.",
+  "The dot over the letters i and j is called a tittle.",
+  "Scotland's national animal is the unicorn.",
+  "The Moon is slowly drifting away from Earth at about 3.8 cm per year.",
+  "Crows can recognize and remember individual human faces.",
+  "The first computer bug was an actual bug — a moth found in a Harvard computer in 1947.",
+  "Butterflies taste with their feet.",
+  "A jiffy is an actual unit of time: 1/100th of a second.",
+  "The Milky Way galaxy smells like raspberries and rum, according to astronomers.",
+  "Penguins propose to their mates with a pebble.",
+  "Humans share 60% of their DNA with bananas.",
+  "Nintendo was founded in 1889 as a playing card company.",
+  "A blue whale's heartbeat can be detected from 2 miles away.",
+  "There's a planet made almost entirely of diamond — 55 Cancri e.",
+  "Ants never sleep and don't have lungs.",
+  "The human eye can distinguish about 10 million different colors.",
+  "A snail can sleep for up to three years during drought.",
+  "The inventor of Vaseline claimed to eat a spoonful of it every morning.",
+  "Fingerprints of a koala are nearly indistinguishable from a human's.",
+  "Hot water freezes faster than cold water — this is called the Mpemba effect.",
+  "A bolt of lightning is five times hotter than the surface of the Sun.",
+  "Cats have a dedicated organ — the Jacobson's organ — for smelling with their mouth.",
+  "The average person walks the equivalent of five times around Earth in their lifetime.",
+  "Water can boil and freeze simultaneously — this is called the triple point.",
+  "Goats have rectangular pupils, giving them a nearly 360-degree field of vision.",
+  "The inventor of the Pringles can is buried in one.",
+];
+
+function DateWidget({ font, height }: { font: string; height?: number }) {
+  const [flipped, setFlipped] = useState(false);
+  const flipAnim = useRef(new Animated.Value(0)).current;
+
+  const flip = () => {
+    const toValue = flipped ? 0 : 1;
+    Animated.spring(flipAnim, { toValue, useNativeDriver: true, friction: 8 }).start();
+    setFlipped(f => !f);
+  };
+
+  const frontRotate = flipAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
+  const backRotate = flipAnim.interpolate({ inputRange: [0, 1], outputRange: ['180deg', '360deg'] });
+  const frontOpacity = flipAnim.interpolate({ inputRange: [0.4, 0.5], outputRange: [1, 0] });
+  const backOpacity = flipAnim.interpolate({ inputRange: [0.4, 0.5], outputRange: [0, 1] });
+
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 0);
+  const dayOfYear = Math.floor((now.getTime() - start.getTime()) / 86400000);
+  const fact = FUN_FACTS[dayOfYear % FUN_FACTS.length];
+
+  const dayName = now.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+  const dayNum = now.getDate();
+  const month = now.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+
+  const sizeStyle = height ? { height, width: height } : undefined;
+
+  return (
+    <Pressable onPress={flip}>
+      <View style={[dw.shadow, sizeStyle]}>
+        {/* Front */}
+        <Animated.View style={[dw.face, sizeStyle, { opacity: frontOpacity, transform: [{ rotateY: frontRotate }] }]}>
+          <LinearGradient colors={['#ffffff', '#f0eef8', '#e8e6f5']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[dw.card, sizeStyle]}>
+            <View style={dw.inner}>
+              <Text style={[dw.dayName, { fontFamily: font }]}>{dayName}</Text>
+              <Text style={[dw.dayNum, { fontFamily: font }]}>{dayNum}</Text>
+              <Text style={[dw.month, { fontFamily: font }]}>{month}</Text>
+            </View>
+          </LinearGradient>
+        </Animated.View>
+        {/* Back */}
+        <Animated.View style={[dw.face, dw.faceBack, sizeStyle, { opacity: backOpacity, transform: [{ rotateY: backRotate }] }]}>
+          <LinearGradient colors={['#e8e6f5', '#f0eef8', '#ffffff']} start={{ x: 1, y: 1 }} end={{ x: 0, y: 0 }} style={[dw.card, sizeStyle]}>
+            <View style={dw.inner}>
+              <Text style={[dw.factTitle, { fontFamily: font }]}>Did you know?</Text>
+              <Text style={[dw.factText, { fontFamily: font }]}>{fact}</Text>
+            </View>
+          </LinearGradient>
+        </Animated.View>
+      </View>
+    </Pressable>
+  );
+}
+
 export default function HomeScreen() {
   const [fontsLoaded] = useFonts({
     CoreBandi: require('@/assets/fonts/CoreBandi.ttf'),
@@ -319,7 +417,6 @@ export default function HomeScreen() {
   });
 
   const [time, setTime] = useState({ clock: '', period: '' });
-  const [cardHeight, setCardHeight] = useState<number | undefined>(undefined);
 
   useEffect(() => {
     const update = () => {
@@ -339,7 +436,7 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <StarField />
-      <View style={styles.cardShadow} onLayout={e => setCardHeight(e.nativeEvent.layout.height)}>
+      <View style={styles.cardShadow}>
         <LinearGradient
           colors={['#f0b83a', Palette.amber, '#fcc95a', '#f0b535']}
           start={{ x: 0, y: 0 }}
@@ -352,9 +449,12 @@ export default function HomeScreen() {
           </View>
         </LinearGradient>
       </View>
-      <View style={{ alignSelf: 'flex-start' }}>
-        <Text style={{ fontFamily: 'Archive', fontSize: 18, color: '#fcfbff', letterSpacing: 1, marginBottom: 10, marginTop: 28 }}>Another great day!</Text>
-        <WeatherWidget font="Archive" height={cardHeight} />
+      <View style={{ alignSelf: 'stretch', marginTop: 28 }}>
+        <Text style={{ fontFamily: 'Archive', fontSize: 18, color: '#fcfbff', letterSpacing: 1, marginBottom: 10 }}>Another great day!</Text>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <WeatherWidget font="Archive" height={WIDGET_SIZE} />
+          <DateWidget font="Archive" height={WIDGET_SIZE} />
+        </View>
       </View>
       <SlideBar />
     </View>
@@ -405,8 +505,6 @@ const styles = StyleSheet.create({
 const wx = StyleSheet.create({
   shadow: {
     borderRadius: 20,
-    marginTop: 16,
-    alignSelf: 'flex-start',
     shadowColor: '#69AFFF',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
@@ -520,5 +618,62 @@ const slider = StyleSheet.create({
   },
   thumbLocked: {
     opacity: 0.5,
+  },
+});
+
+const dw = StyleSheet.create({
+  shadow: {
+    borderRadius: 20,
+    shadowColor: '#ffffff',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 14,
+  },
+  face: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    backfaceVisibility: 'hidden',
+  },
+  faceBack: {},
+  card: {
+    borderRadius: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+  },
+  inner: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  dayName: {
+    fontSize: 11,
+    color: '#0f3460',
+    opacity: 0.5,
+    letterSpacing: 3,
+  },
+  dayNum: {
+    fontSize: 52,
+    color: '#0f3460',
+  },
+  month: {
+    fontSize: 11,
+    color: '#0f3460',
+    opacity: 0.5,
+    letterSpacing: 3,
+  },
+  factTitle: {
+    fontSize: 11,
+    color: '#0f3460',
+    opacity: 0.5,
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  factText: {
+    fontSize: 13,
+    color: '#0f3460',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
