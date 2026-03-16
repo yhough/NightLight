@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nightlight.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -26,6 +27,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "./plugins/withShareExtension",
       "expo-router",
       [
         "expo-splash-screen",

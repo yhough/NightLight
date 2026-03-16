@@ -3,11 +3,12 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
+import * as Linking from 'expo-linking';
 
 import LoadingScreen from '@/components/loading-screen';
 import SignInScreen from '@/components/sign-in-screen';
 import OnboardingFlow from '@/components/onboarding-flow';
-import ImpulseFirewall from '@/components/impulse-firewall';
+import MessageQueue from '@/components/message-queue';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { NightModeProvider, useNightMode } from '@/context/night-mode';
 
@@ -22,6 +23,9 @@ function AppShell() {
   const [signedIn, setSignedIn] = useState(false);
   const [onboarded, setOnboarded] = useState(false);
 
+  // Queue modal – opened by the nightlight://queue deep link
+  const [queueOpen, setQueueOpen] = useState(false);
+
   const handleLogout = () => {
     setSignedIn(false);
     setOnboarded(false);
@@ -29,6 +33,28 @@ function AppShell() {
 
   useEffect(() => {
     setLogout(handleLogout);
+  }, []);
+
+  // ── Deep link handler ────────────────────────────────────────────────────
+  const handleUrl = (url: string | null) => {
+    if (!url) return;
+    try {
+      const parsed = Linking.parse(url);
+      if (parsed.scheme === 'nightlight' && parsed.hostname === 'queue') {
+        setQueueOpen(true);
+      }
+    } catch {
+      // ignore malformed URLs
+    }
+  };
+
+  useEffect(() => {
+    // Handle URL that launched the app
+    Linking.getInitialURL().then(handleUrl);
+
+    // Handle URLs while the app is already open
+    const sub = Linking.addEventListener('url', ({ url }) => handleUrl(url));
+    return () => sub.remove();
   }, []);
 
   return (
@@ -41,7 +67,8 @@ function AppShell() {
       {showLoader && <LoadingScreen onFinish={() => setShowLoader(false)} />}
       {!showLoader && !signedIn && <SignInScreen onSignIn={() => setSignedIn(true)} />}
       {!showLoader && signedIn && !onboarded && <OnboardingFlow onComplete={() => setOnboarded(true)} />}
-      <ImpulseFirewall />
+      {/* Queue modal – triggered by nightlight://queue deep link */}
+      <MessageQueue visible={queueOpen} onClose={() => setQueueOpen(false)} />
     </ThemeProvider>
   );
 }

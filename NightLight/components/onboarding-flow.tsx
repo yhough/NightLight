@@ -32,7 +32,7 @@ const C = {
   subtleBorder: 'rgba(255,255,255,0.1)',
 };
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 6;
 
 import type { Contact } from '@/context/night-mode';
 
@@ -44,11 +44,11 @@ async function pickContact(): Promise<{ name: string; phone: string; imageUri?: 
   const name = result.name || [result.firstName, result.lastName].filter(Boolean).join(' ') || '';
   const phone = result.phoneNumbers?.[0]?.number ?? '';
   // Use image from picker result if available
-  let imageUri: string | undefined = result.image?.uri ?? result.thumbnail?.uri;
+  let imageUri: string | undefined = result.image?.uri;
   if (!imageUri && result.id) {
     try {
-      const full = await Contacts.getContactByIdAsync(result.id, [Contacts.Fields.Image, Contacts.Fields.Thumbnail]);
-      imageUri = full?.image?.uri ?? full?.thumbnail?.uri;
+      const full = await Contacts.getContactByIdAsync(result.id, [Contacts.Fields.Image]);
+      imageUri = full?.image?.uri;
     } catch {
       // image unavailable — fallback to initial avatar
     }
@@ -321,56 +321,6 @@ function HomeByScreen({
   );
 }
 
-// ── Screen 5: Impulse Firewall ───────────────────────────────────────────────
-function ImpulseScreen({
-  onNext,
-  onSkip,
-  font,
-  enabled,
-  setEnabled,
-}: {
-  onNext: () => void;
-  onSkip: () => void;
-  font: string;
-  enabled: boolean;
-  setEnabled: (v: boolean) => void;
-}) {
-  return (
-    <View style={sc.screen}>
-      <View style={sc.center}>
-        <Text style={sc.icon}>💬</Text>
-        <Text style={[sc.headline, { fontFamily: font }]}>Protect your{'\n'}2am texts.</Text>
-        <Text style={[sc.sub, { fontFamily: font }]}>
-          Add a 10-minute send delay to messages you might regret. Future you will be grateful.
-        </Text>
-
-        <TouchableOpacity onPress={() => setEnabled(!enabled)} style={sc.toggleRow}>
-          <View style={sc.toggleInfo}>
-            <Text style={[sc.toggleTitle, { fontFamily: font }]}>Impulse Firewall</Text>
-            <Text style={[sc.toggleSub, { fontFamily: font }]}>
-              10-minute delay on outgoing messages
-            </Text>
-          </View>
-          <View style={[sc.toggle, enabled && sc.toggleOn]}>
-            <Animated.View style={[sc.toggleThumb, enabled && sc.toggleThumbOn]} />
-          </View>
-        </TouchableOpacity>
-
-        {enabled && (
-          <View style={sc.impulseTip}>
-            <Text style={[sc.impulseTipText, { fontFamily: font }]}>
-              You can customize which contacts this applies to in Settings.
-            </Text>
-          </View>
-        )}
-      </View>
-
-      <CTAButton label={enabled ? 'Set it up →' : 'Skip for now →'} onPress={enabled ? onNext : onSkip} />
-      {enabled && <SkipButton label="Skip for now" onPress={onSkip} font={font} />}
-    </View>
-  );
-}
-
 // ── Screen 5: All Set ────────────────────────────────────────────────────────
 function AllSetScreen({ onDone, font }: { onDone: () => void; font: string }) {
   const glow = useRef(new Animated.Value(0.6)).current;
@@ -412,7 +362,6 @@ export default function OnboardingFlow({ onComplete }: Props) {
     homeAddress, setHomeAddress,
     homeByTime, setHomeByTime,
     contacts, setContacts,
-    impulseEnabled, setImpulseEnabled,
   } = useNightMode();
 
   const [step, setStep] = useState(0);
@@ -465,16 +414,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
             setHomeByTime={setHomeByTime}
           />
         )}
-        {step === 5 && (
-          <ImpulseScreen
-            onNext={next}
-            onSkip={skip}
-            font={font}
-            enabled={impulseEnabled}
-            setEnabled={setImpulseEnabled}
-          />
-        )}
-        {step === 6 && <AllSetScreen onDone={onComplete} font={font} />}
+        {step === 5 && <AllSetScreen onDone={onComplete} font={font} />}
       </Animated.View>
     </View>
   );
@@ -722,71 +662,5 @@ const sc = StyleSheet.create({
     fontSize: 14,
     color: C.muted,
     letterSpacing: 0.5,
-  },
-  toggleRow: {
-    alignSelf: 'stretch',
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: C.subtle,
-    borderWidth: 1,
-    borderColor: C.subtleBorder,
-    borderRadius: 16,
-    padding: 18,
-    marginTop: 16,
-    gap: 16,
-  },
-  toggleInfo: {
-    flex: 1,
-    gap: 4,
-  },
-  toggleTitle: {
-    fontSize: 15,
-    color: C.white,
-    letterSpacing: 0.2,
-  },
-  toggleSub: {
-    fontSize: 12,
-    color: C.muted,
-    letterSpacing: 0.2,
-  },
-  toggle: {
-    width: 48,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-  },
-  toggleOn: {
-    backgroundColor: 'rgba(232,176,48,0.35)',
-    borderColor: C.goldBorder,
-    borderWidth: 1,
-  },
-  toggleThumb: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: 'rgba(255,255,255,0.35)',
-  },
-  toggleThumbOn: {
-    backgroundColor: C.goldBright,
-    alignSelf: 'flex-end',
-  },
-  impulseTip: {
-    alignSelf: 'stretch',
-    backgroundColor: C.goldDim,
-    borderWidth: 1,
-    borderColor: C.goldBorder,
-    borderRadius: 12,
-    padding: 14,
-    marginTop: 8,
-  },
-  impulseTipText: {
-    fontSize: 13,
-    color: C.goldBright,
-    opacity: 0.85,
-    textAlign: 'center',
-    lineHeight: 20,
-    letterSpacing: 0.2,
   },
 });

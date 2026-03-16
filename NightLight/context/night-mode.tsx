@@ -16,8 +16,6 @@ interface AppState {
   setHomeByTime: (v: Date | null) => void;
   contacts: Contact[];
   setContacts: (c: Contact[]) => void;
-  impulseEnabled: boolean;
-  setImpulseEnabled: (v: boolean) => void;
   logout: () => void;
   setLogout: (fn: () => void) => void;
 }
@@ -31,8 +29,6 @@ const AppContext = createContext<AppState>({
   setHomeByTime: () => {},
   contacts: [],
   setContacts: () => {},
-  impulseEnabled: false,
-  setImpulseEnabled: () => {},
   logout: () => {},
   setLogout: () => {},
 });
@@ -42,7 +38,6 @@ export function NightModeProvider({ children }: { children: React.ReactNode }) {
   const [homeAddress, setHomeAddress] = useState('');
   const [homeByTime, setHomeByTime] = useState<Date | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [impulseEnabled, setImpulseEnabled] = useState(false);
   const [logout, setLogoutFn] = useState<() => void>(() => () => {});
 
   const setLogout = (fn: () => void) => setLogoutFn(() => fn);
@@ -53,7 +48,6 @@ export function NightModeProvider({ children }: { children: React.ReactNode }) {
       homeAddress, setHomeAddress,
       homeByTime, setHomeByTime,
       contacts, setContacts,
-      impulseEnabled, setImpulseEnabled,
       logout,
       setLogout,
     }}>

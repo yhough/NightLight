@@ -56,7 +56,6 @@ export default function SettingsScreen() {
     homeAddress, setHomeAddress,
     homeByTime, setHomeByTime,
     contacts, setContacts,
-    impulseEnabled, setImpulseEnabled,
     logout,
   } = useNightMode();
 
@@ -89,11 +88,11 @@ export default function SettingsScreen() {
     const name = result.name || [result.firstName, result.lastName].filter(Boolean).join(' ') || '';
     const phone = result.phoneNumbers?.[0]?.number ?? '';
     // Use image from picker result if available
-    let imageUri: string | undefined = result.image?.uri ?? result.thumbnail?.uri;
+    let imageUri: string | undefined = result.image?.uri;
     if (!imageUri && result.id) {
       try {
-        const full = await Contacts.getContactByIdAsync(result.id, [Contacts.Fields.Image, Contacts.Fields.Thumbnail]);
-        imageUri = full?.image?.uri ?? full?.thumbnail?.uri;
+        const full = await Contacts.getContactByIdAsync(result.id, [Contacts.Fields.Image]);
+        imageUri = full?.image?.uri;
       } catch {
         // image unavailable — fallback to initial avatar
       }
@@ -210,22 +209,6 @@ export default function SettingsScreen() {
           )}
         </View>
 
-        {/* ── Impulse Firewall ── */}
-        <SectionHeader title="IMPULSE FIREWALL" font={font} />
-        <TouchableOpacity onPress={() => setImpulseEnabled(!impulseEnabled)} style={s.card}>
-          <View style={s.toggleRow}>
-            <View style={{ flex: 1, gap: 4 }}>
-              <Text style={[s.toggleTitle, { fontFamily: font }]}>Message delay</Text>
-              <Text style={[s.toggleSub, { fontFamily: font }]}>
-                10-minute delay on outgoing messages
-              </Text>
-            </View>
-            <View style={[s.toggle, impulseEnabled && { backgroundColor: accentDim, borderWidth: 1, borderColor: accentBorder }]}>
-              <View style={[s.toggleThumb, impulseEnabled && { backgroundColor: accent, alignSelf: 'flex-end' }]} />
-            </View>
-          </View>
-        </TouchableOpacity>
-
         {/* ── Account ── */}
         <SectionHeader title="ACCOUNT" font={font} />
         <Pressable onPress={handleLogout} style={s.logoutBtn}>
@@ -289,6 +272,7 @@ const s = StyleSheet.create({
   },
   inlineBtnText: {
     fontSize: 14,
+    color: C.goldBright,
     letterSpacing: 0.3,
     opacity: 0.85,
   },
@@ -357,44 +341,6 @@ const s = StyleSheet.create({
     fontSize: 12,
     color: C.danger,
     letterSpacing: 0.3,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  toggleTitle: {
-    fontSize: 15,
-    color: C.white,
-    letterSpacing: 0.2,
-  },
-  toggleSub: {
-    fontSize: 12,
-    color: C.muted,
-    letterSpacing: 0.2,
-  },
-  toggle: {
-    width: 48,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-  },
-  toggleOn: {
-    backgroundColor: 'rgba(232,176,48,0.3)',
-    borderWidth: 1,
-    borderColor: C.goldBorder,
-  },
-  toggleThumb: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
-  toggleThumbOn: {
-    backgroundColor: C.goldBright,
-    alignSelf: 'flex-end',
   },
   logoutBtn: {
     backgroundColor: C.dangerDim,

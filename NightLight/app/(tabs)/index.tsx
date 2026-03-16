@@ -1,15 +1,28 @@
 import { useFonts } from 'expo-font';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNightMode } from '@/context/night-mode';
 import {
+  AppState,
+  AppStateStatus,
   Animated,
   Easing,
   PanResponder,
+  Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import MessageQueue from '@/components/message-queue';
+
+// Lazy-load the native bridge so the app doesn't crash on web / Expo Go
+let QueueBridge: any = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  QueueBridge = require('@/modules/queue-bridge').default;
+} catch {
+  // Not available in this environment
+}
 
 const BUTTON_SIZE = 176;
 const HOLD_MS = 1500;
@@ -224,6 +237,32 @@ export default function HomeScreen() {
   const [dateStr, setDateStr] = useState('');
   const { active, setActive } = useNightMode();
 
+  // ── Queue state ────────────────────────────────────────────────────────────
+  const [queueCount, setQueueCount] = useState(0);
+  const [queueOpen, setQueueOpen] = useState(false);
+  const appStateRef = useRef(AppState.currentState);
+
+  const refreshQueueCount = useCallback(async () => {
+    if (!QueueBridge) return;
+    try {
+      const items = await QueueBridge.getQueueItems();
+      setQueueCount(Array.isArray(items) ? items.length : 0);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshQueueCount();
+    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (appStateRef.current.match(/inactive|background/) && state === 'active') {
+        refreshQueueCount();
+      }
+      appStateRef.current = state;
+    });
+    return () => sub.remove();
+  }, [refreshQueueCount]);
+
   useEffect(() => {
     const update = () => {
       const now = new Date();
@@ -285,6 +324,29 @@ export default function HomeScreen() {
           ? 'NightLight is monitoring your session.'
           : 'Hold for 1.5 seconds to activate night mode.'}
       </Text>
+
+      {/* Queue badge */}
+      {queueCount > 0 && (
+        <Pressable
+          style={sc.queueBadge}
+          onPress={() => setQueueOpen(true)}
+        >
+          <View style={sc.queueDot} />
+          <Text style={[sc.queueText, { fontFamily: 'Archive' }]}>
+            {queueCount} message{queueCount !== 1 ? 's' : ''} waiting
+          </Text>
+          <Text style={sc.queueChevron}>›</Text>
+        </Pressable>
+      )}
+
+      {/* Queue modal */}
+      <MessageQueue
+        visible={queueOpen}
+        onClose={() => {
+          setQueueOpen(false);
+          refreshQueueCount();
+        }}
+      />
     </LinearGradient>
   );
 }
@@ -350,6 +412,35 @@ const sc = StyleSheet.create({
     marginTop: 64,
     textAlign: 'center',
     lineHeight: 22,
+  },
+  queueBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 20,
+    backgroundColor: 'rgba(232,176,48,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(232,176,48,0.22)',
+  },
+  queueDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: C.violet,
+  },
+  queueText: {
+    fontSize: 13,
+    color: C.violet,
+    letterSpacing: 0.5,
+  },
+  queueChevron: {
+    fontSize: 18,
+    color: C.violetBright,
+    marginLeft: 2,
+    lineHeight: 20,
   },
 });
 
