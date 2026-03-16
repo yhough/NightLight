@@ -14,19 +14,19 @@ const BUTTON_SIZE = 176;
 const HOLD_MS = 1500;
 
 const C = {
-  bg0: '#07071A',
-  bg1: '#120D2C',
-  violet: '#8B5CF6',
-  violetBright: '#A78BFA',
-  violetDim: 'rgba(139,92,246,0.18)',
-  violetGlass: 'rgba(139,92,246,0.08)',
+  bg0: '#0D0D0D',
+  bg1: '#0D0D0D',
+  violet: '#E8B030',
+  violetBright: '#F5C842',
+  violetDim: 'rgba(232,176,48,0.18)',
+  violetGlass: 'rgba(232,176,48,0.08)',
   emerald: '#10B981',
   emeraldBright: '#34D399',
   emeraldDim: 'rgba(16,185,129,0.18)',
   white: '#FFFFFF',
   text: '#EDE9FE',
   muted: 'rgba(237,233,254,0.4)',
-  border: 'rgba(139,92,246,0.22)',
+  border: 'rgba(232,176,48,0.22)',
   borderFaint: 'rgba(255,255,255,0.07)',
 };
 
@@ -173,7 +173,7 @@ function ActivateButton({
           />
           {/* Labels */}
           <View style={btn.labels}>
-            <Text style={[btn.mainLabel, { color: accentBright, fontFamily: font }]}>
+            <Text style={[btn.mainLabel, { fontFamily: font }]}>
               {active ? 'ACTIVE' : 'HOLD'}
             </Text>
             <Text
@@ -287,12 +287,15 @@ const sc = StyleSheet.create({
   timeBlock: {
     alignItems: 'center',
     marginBottom: 32,
+    overflow: 'visible',
   },
   clock: {
     fontSize: 90,
     color: C.white,
     letterSpacing: -2,
     lineHeight: 90,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     textShadowColor: C.violet,
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 28,
@@ -320,7 +323,7 @@ const sc = StyleSheet.create({
     color: C.text,
     letterSpacing: 0.4,
     marginBottom: 56,
-    marginTop: -16,
+    marginTop: -6,
     opacity: 0.8,
   },
   hint: {
@@ -368,7 +371,7 @@ const btn = StyleSheet.create({
     width: BUTTON_SIZE,
     height: BUTTON_SIZE,
     borderRadius: BUTTON_SIZE / 2,
-    backgroundColor: 'rgba(255,255,255,0.025)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -390,6 +393,10 @@ const btn = StyleSheet.create({
   mainLabel: {
     fontSize: 19,
     letterSpacing: 4,
+    color: C.white,
+    textShadowColor: C.violet,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 20,
   },
   subLabel: {
     fontSize: 11,

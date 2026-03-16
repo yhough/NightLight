@@ -7,6 +7,6 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#07071A',
+    backgroundColor: '#0D0D0D',
   },
 });
