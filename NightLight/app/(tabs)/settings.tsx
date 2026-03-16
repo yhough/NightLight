@@ -73,7 +73,13 @@ export default function SettingsScreen() {
       if (status !== 'granted') { setLocLoading(false); return; }
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       const [geo] = await Location.reverseGeocodeAsync(loc.coords);
-      const addr = [geo.name, geo.street, geo.city, geo.region].filter(Boolean).join(', ');
+      const addr = [
+        geo.streetNumber,
+        geo.street,
+        geo.city,
+        geo.region,
+        geo.postalCode,
+      ].filter(Boolean).join(', ');
       setHomeAddress(addr);
     } catch {}
     setLocLoading(false);
