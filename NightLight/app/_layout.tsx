@@ -5,7 +5,9 @@ import { useState } from 'react';
 import 'react-native-reanimated';
 
 import LoadingScreen from '@/components/loading-screen';
+import SignInScreen from '@/components/sign-in-screen';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { NightModeProvider } from '@/context/night-mode';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -14,8 +16,10 @@ export const unstable_settings = {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [showLoader, setShowLoader] = useState(true);
+  const [signedIn, setSignedIn] = useState(false);
 
   return (
+    <NightModeProvider>
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -23,6 +27,8 @@ export default function RootLayout() {
       </Stack>
       <StatusBar style="auto" />
       {showLoader && <LoadingScreen onFinish={() => setShowLoader(false)} />}
+      {!showLoader && !signedIn && <SignInScreen onSignIn={() => setSignedIn(true)} />}
     </ThemeProvider>
+    </NightModeProvider>
   );
 }

@@ -1,5 +1,6 @@
 import { useFonts } from 'expo-font';
 import { useEffect, useRef, useState } from 'react';
+import { useNightMode } from '@/context/night-mode';
 import {
   Animated,
   Easing,
@@ -221,7 +222,7 @@ export default function HomeScreen() {
 
   const [time, setTime] = useState({ clock: '', period: '' });
   const [dateStr, setDateStr] = useState('');
-  const [active, setActive] = useState(false);
+  const { active, setActive } = useNightMode();
 
   useEffect(() => {
     const update = () => {
@@ -267,7 +268,7 @@ export default function HomeScreen() {
 
       {/* Prompt */}
       <Text style={[sc.prompt, { fontFamily: 'Archive' }]}>
-        {active ? 'Your crew has you covered.' : 'Ready to head out?'}
+        {active ? 'Have a great night!' : 'Ready to head out?'}
       </Text>
 
       {/* Activation button */}
