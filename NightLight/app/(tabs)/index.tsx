@@ -20,9 +20,9 @@ const C = {
   violetBright: '#F5C842',
   violetDim: 'rgba(232,176,48,0.18)',
   violetGlass: 'rgba(232,176,48,0.08)',
-  emerald: '#10B981',
-  emeraldBright: '#34D399',
-  emeraldDim: 'rgba(16,185,129,0.18)',
+  emerald: '#E8558A',
+  emeraldBright: '#F472B6',
+  emeraldDim: 'rgba(232,85,138,0.18)',
   white: '#FFFFFF',
   text: '#EDE9FE',
   muted: 'rgba(255,255,255,0.65)',
@@ -193,18 +193,18 @@ function ActivateButton({
           {/* Labels */}
           <View style={btn.labels}>
             <Text style={[btn.mainLabel, { fontFamily: font }]}>
-              {active ? 'ACTIVE' : 'HOLD'}
+              {active ? 'ACTIVE' : 'INACTIVE'}
             </Text>
             <Text
               style={[
                 btn.subLabel,
                 {
-                  color: active ? 'rgba(52,211,153,0.55)' : C.muted,
+                  color: active ? 'rgba(232,85,138,0.7)' : C.muted,
                   fontFamily: font,
                 },
               ]}
             >
-              {active ? 'hold to end' : 'to go live'}
+              {active ? 'hold to end' : 'hold to go live'}
             </Text>
           </View>
         </Animated.View>
@@ -257,7 +257,7 @@ export default function HomeScreen() {
 
       {/* Time */}
       <View style={sc.timeBlock}>
-        <Text style={[sc.clock, { fontFamily: 'Archive' }]}>{time.clock}</Text>
+        <Text style={[sc.clock, { fontFamily: 'Archive', textShadowColor: active ? '#E8558A' : '#E8B030' }]}>{time.clock}</Text>
         <Text style={[sc.period, { fontFamily: 'Archive' }]}>{time.period}</Text>
         <Text style={[sc.date, { fontFamily: 'Archive' }]}>{dateStr}</Text>
       </View>
@@ -314,7 +314,6 @@ const sc = StyleSheet.create({
     lineHeight: 108,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    textShadowColor: C.violet,
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 28,
   },
@@ -407,8 +406,8 @@ const btn = StyleSheet.create({
     gap: 6,
   },
   mainLabel: {
-    fontSize: 24,
-    letterSpacing: 5,
+    fontSize: 20,
+    letterSpacing: 4,
     color: C.white,
   },
   subLabel: {
