@@ -1,5 +1,6 @@
 import * as Location from 'expo-location';
 import * as Contacts from 'expo-contacts';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFonts } from 'expo-font';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef, useState } from 'react';
@@ -31,7 +32,7 @@ const C = {
   subtleBorder: 'rgba(255,255,255,0.1)',
 };
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 import type { Contact } from '@/context/night-mode';
 
@@ -279,7 +280,48 @@ function SafeCircleScreen({
   );
 }
 
-// ── Screen 4: Impulse Firewall ───────────────────────────────────────────────
+// ── Screen 4: Home By Time ───────────────────────────────────────────────────
+function HomeByScreen({
+  onNext,
+  font,
+  homeByTime,
+  setHomeByTime,
+}: {
+  onNext: () => void;
+  font: string;
+  homeByTime: Date | null;
+  setHomeByTime: (v: Date | null) => void;
+}) {
+  const defaultTime = new Date();
+  defaultTime.setHours(1, 0, 0, 0);
+  const time = homeByTime ?? defaultTime;
+
+  return (
+    <View style={sc.screen}>
+      <View style={sc.center}>
+        <Text style={sc.icon}>🕐</Text>
+        <Text style={[sc.headline, { fontFamily: font }]}>When do you{'\n'}usually head home?</Text>
+        <Text style={[sc.sub, { fontFamily: font }]}>
+          We'll use this as your check-in window.
+        </Text>
+        <View style={sc.pickerWrapper}>
+          <DateTimePicker
+            value={time}
+            mode="time"
+            display="spinner"
+            onChange={(_, selected) => selected && setHomeByTime(selected)}
+            textColor="#FFFFFF"
+            themeVariant="dark"
+          />
+        </View>
+      </View>
+      <CTAButton label="Continue →" onPress={onNext} />
+      {!homeByTime && <SkipButton label="Skip for now" onPress={onNext} font={font} />}
+    </View>
+  );
+}
+
+// ── Screen 5: Impulse Firewall ───────────────────────────────────────────────
 function ImpulseScreen({
   onNext,
   onSkip,
@@ -368,6 +410,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
 
   const {
     homeAddress, setHomeAddress,
+    homeByTime, setHomeByTime,
     contacts, setContacts,
     impulseEnabled, setImpulseEnabled,
   } = useNightMode();
@@ -415,6 +458,14 @@ export default function OnboardingFlow({ onComplete }: Props) {
           />
         )}
         {step === 4 && (
+          <HomeByScreen
+            onNext={next}
+            font={font}
+            homeByTime={homeByTime}
+            setHomeByTime={setHomeByTime}
+          />
+        )}
+        {step === 5 && (
           <ImpulseScreen
             onNext={next}
             onSkip={skip}
@@ -423,7 +474,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
             setEnabled={setImpulseEnabled}
           />
         )}
-        {step === 5 && <AllSetScreen onDone={onComplete} font={font} />}
+        {step === 6 && <AllSetScreen onDone={onComplete} font={font} />}
       </Animated.View>
     </View>
   );
@@ -652,6 +703,10 @@ const sc = StyleSheet.create({
     fontSize: 12,
     color: '#F87171',
     letterSpacing: 0.3,
+  },
+  pickerWrapper: {
+    alignSelf: 'stretch',
+    marginTop: 8,
   },
   addBtn: {
     marginTop: 12,

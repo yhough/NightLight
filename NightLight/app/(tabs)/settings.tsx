@@ -1,5 +1,6 @@
 import * as Location from 'expo-location';
 import * as Contacts from 'expo-contacts';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFonts } from 'expo-font';
 import { useState } from 'react';
 import {
@@ -48,12 +49,14 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const {
     homeAddress, setHomeAddress,
+    homeByTime, setHomeByTime,
     contacts, setContacts,
     impulseEnabled, setImpulseEnabled,
     logout,
   } = useNightMode();
 
   const [locLoading, setLocLoading] = useState(false);
+  const [editingTime, setEditingTime] = useState(false);
 
   const useCurrentLocation = async () => {
     setLocLoading(true);
@@ -139,6 +142,33 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* ── Home By Time ── */}
+        <SectionHeader title="USUAL HOME TIME" font={font} />
+        <View style={s.card}>
+          <View style={s.timeRow}>
+            <Text style={[s.timeDisplay, { fontFamily: font }]}>
+              {homeByTime
+                ? homeByTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+                : 'Not set'}
+            </Text>
+            <TouchableOpacity onPress={() => setEditingTime(e => !e)}>
+              <Text style={[s.inlineBtnText, { fontFamily: font }]}>
+                {editingTime ? 'Done' : 'Change'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {editingTime && (
+            <DateTimePicker
+              value={homeByTime ?? (() => { const d = new Date(); d.setHours(1, 0, 0, 0); return d; })()}
+              mode="time"
+              display="spinner"
+              onChange={(_, selected) => selected && setHomeByTime(selected)}
+              textColor="#FFFFFF"
+              themeVariant="dark"
+            />
+          )}
+        </View>
+
         {/* ── Safe Circle ── */}
         <SectionHeader title="SAFE CIRCLE" font={font} />
         <View style={s.card}>
@@ -222,6 +252,16 @@ const s = StyleSheet.create({
     borderColor: C.subtleBorder,
     borderRadius: 16,
     padding: 16,
+  },
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  timeDisplay: {
+    fontSize: 17,
+    color: C.white,
+    letterSpacing: 0.3,
   },
   input: {
     height: 48,
