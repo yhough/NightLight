@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
-  Pressable,
+  PanResponder,
   StyleSheet,
   Text,
   View,
@@ -67,6 +67,8 @@ function ActivateButton({
   const glowScale = useRef(new Animated.Value(1)).current;
   const holdAnim = useRef<Animated.CompositeAnimation | null>(null);
   const didComplete = useRef(false);
+  const activeRef = useRef(active);
+  useEffect(() => { activeRef.current = active; }, [active]);
 
   useEffect(() => {
     if (active) {
@@ -94,12 +96,12 @@ function ActivateButton({
     }
   }, [active]);
 
-  const onPressIn = () => {
-    if (active) return;
+  const handleGrant = () => {
     didComplete.current = false;
+    const toValue = activeRef.current ? 0 : 1;
     Animated.spring(scale, { toValue: 0.93, useNativeDriver: true }).start();
     holdAnim.current = Animated.timing(fill, {
-      toValue: 1,
+      toValue,
       duration: HOLD_MS,
       easing: Easing.linear,
       useNativeDriver: false,
@@ -107,29 +109,47 @@ function ActivateButton({
     holdAnim.current.start(({ finished }) => {
       if (finished) {
         didComplete.current = true;
-        onActivate();
         Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
       }
     });
   };
 
-  const onPressOut = () => {
-    if (active) {
-      onDeactivate();
-      Animated.timing(fill, { toValue: 0, duration: 500, useNativeDriver: false }).start();
+  const handleRelease = () => {
+    if (didComplete.current) {
+      if (activeRef.current) {
+        activeRef.current = false;
+        onDeactivate();
+      } else {
+        activeRef.current = true;
+        onActivate();
+      }
       return;
     }
-    if (!didComplete.current) {
-      holdAnim.current?.stop();
-      Animated.parallel([
-        Animated.spring(scale, { toValue: 1, useNativeDriver: true }),
-        Animated.timing(fill, { toValue: 0, duration: 350, useNativeDriver: false }),
-      ]).start();
-    }
+    holdAnim.current?.stop();
+    const resetTo = activeRef.current ? 1 : 0;
+    Animated.parallel([
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true }),
+      Animated.timing(fill, { toValue: resetTo, duration: 350, useNativeDriver: false }),
+    ]).start();
   };
 
+  const handleGrantRef = useRef(handleGrant);
+  handleGrantRef.current = handleGrant;
+  const handleReleaseRef = useRef(handleRelease);
+  handleReleaseRef.current = handleRelease;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => false,
+      onPanResponderGrant: () => handleGrantRef.current(),
+      onPanResponderRelease: () => handleReleaseRef.current(),
+      onPanResponderTerminate: () => handleReleaseRef.current(),
+      onPanResponderTerminationRequest: () => false,
+    })
+  ).current;
+
   const accentColor = active ? C.emerald : C.violet;
-  const accentBright = active ? C.emeraldBright : C.violetBright;
   const glowBg = active ? C.emeraldDim : C.violetDim;
 
   const fillHeight = fill.interpolate({
@@ -139,8 +159,7 @@ function ActivateButton({
   const borderW = fill.interpolate({ inputRange: [0, 1], outputRange: [1.5, 3] });
 
   return (
-    <Pressable onPressIn={onPressIn} onPressOut={onPressOut}>
-      <Animated.View style={{ transform: [{ scale }] }}>
+    <Animated.View style={{ transform: [{ scale }] }} {...panResponder.panHandlers}>
         {/* Outer glow ring */}
         <Animated.View
           style={[
@@ -185,12 +204,11 @@ function ActivateButton({
                 },
               ]}
             >
-              {active ? 'tap to end' : 'to go live'}
+              {active ? 'hold to end' : 'to go live'}
             </Text>
           </View>
         </Animated.View>
-      </Animated.View>
-    </Pressable>
+    </Animated.View>
   );
 }
 
@@ -304,13 +322,13 @@ const sc = StyleSheet.create({
     fontSize: 22,
     color: C.muted,
     letterSpacing: 6,
-    marginTop: 2,
+    marginTop: -16,
   },
   date: {
     fontSize: 16,
     color: C.muted,
     letterSpacing: 1,
-    marginTop: 6,
+    marginTop: -2,
   },
   divider: {
     width: 40,
