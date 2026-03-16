@@ -7,6 +7,7 @@ import 'react-native-reanimated';
 import LoadingScreen from '@/components/loading-screen';
 import SignInScreen from '@/components/sign-in-screen';
 import OnboardingFlow from '@/components/onboarding-flow';
+import ImpulseFirewall from '@/components/impulse-firewall';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { NightModeProvider, useNightMode } from '@/context/night-mode';
 
@@ -40,6 +41,7 @@ function AppShell() {
       {showLoader && <LoadingScreen onFinish={() => setShowLoader(false)} />}
       {!showLoader && !signedIn && <SignInScreen onSignIn={() => setSignedIn(true)} />}
       {!showLoader && signedIn && !onboarded && <OnboardingFlow onComplete={() => setOnboarded(true)} />}
+      <ImpulseFirewall />
     </ThemeProvider>
   );
 }

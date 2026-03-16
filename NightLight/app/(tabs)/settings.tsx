@@ -26,6 +26,10 @@ const C = {
   goldBright: '#F5C842',
   goldDim: 'rgba(232,176,48,0.12)',
   goldBorder: 'rgba(232,176,48,0.22)',
+  pink: '#E8558A',
+  pinkBright: '#F472B6',
+  pinkDim: 'rgba(232,85,138,0.12)',
+  pinkBorder: 'rgba(232,85,138,0.22)',
   white: '#FFFFFF',
   muted: 'rgba(255,255,255,0.45)',
   subtle: 'rgba(255,255,255,0.05)',
@@ -48,12 +52,17 @@ export default function SettingsScreen() {
 
   const insets = useSafeAreaInsets();
   const {
+    active,
     homeAddress, setHomeAddress,
     homeByTime, setHomeByTime,
     contacts, setContacts,
     impulseEnabled, setImpulseEnabled,
     logout,
   } = useNightMode();
+
+  const accent = active ? C.pinkBright : C.goldBright;
+  const accentDim = active ? C.pinkDim : C.goldDim;
+  const accentBorder = active ? C.pinkBorder : C.goldBorder;
 
   const [locLoading, setLocLoading] = useState(false);
   const [editingTime, setEditingTime] = useState(false);
@@ -136,7 +145,7 @@ export default function SettingsScreen() {
             autoCorrect={false}
           />
           <TouchableOpacity onPress={useCurrentLocation} style={s.inlineBtn}>
-            <Text style={[s.inlineBtnText, { fontFamily: font }]}>
+            <Text style={[s.inlineBtnText, { fontFamily: font, color: accent }]}>
               {locLoading ? 'Getting location…' : '📍 Use current location'}
             </Text>
           </TouchableOpacity>
@@ -152,7 +161,7 @@ export default function SettingsScreen() {
                 : 'Not set'}
             </Text>
             <TouchableOpacity onPress={() => setEditingTime(e => !e)}>
-              <Text style={[s.inlineBtnText, { fontFamily: font }]}>
+              <Text style={[s.inlineBtnText, { fontFamily: font, color: accent }]}>
                 {editingTime ? 'Done' : 'Change'}
               </Text>
             </TouchableOpacity>
@@ -181,7 +190,7 @@ export default function SettingsScreen() {
                 <View style={s.contactInfo}>
                   {c.imageUri
                     ? <Image source={{ uri: c.imageUri }} style={s.avatar} resizeMode="cover" />
-                    : <View style={s.avatarFallback}><Text style={[s.avatarInitial, { fontFamily: font }]}>{c.name?.[0]?.toUpperCase() ?? '?'}</Text></View>
+                    : <View style={[s.avatarFallback, { backgroundColor: accentDim, borderColor: accentBorder }]}><Text style={[s.avatarInitial, { fontFamily: font, color: accent }]}>{c.name?.[0]?.toUpperCase() ?? '?'}</Text></View>
                   }
                   <View>
                     <Text style={[s.contactName, { fontFamily: font }]}>{c.name || 'Unknown'}</Text>
@@ -196,7 +205,7 @@ export default function SettingsScreen() {
           ))}
           {contacts.length < 3 && (
             <TouchableOpacity onPress={addContact} style={[s.inlineBtn, contacts.length > 0 && { marginTop: 14 }]}>
-              <Text style={[s.inlineBtnText, { fontFamily: font }]}>+ Add a contact</Text>
+              <Text style={[s.inlineBtnText, { fontFamily: font, color: accent }]}>+ Add a contact</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -211,8 +220,8 @@ export default function SettingsScreen() {
                 10-minute delay on outgoing messages
               </Text>
             </View>
-            <View style={[s.toggle, impulseEnabled && s.toggleOn]}>
-              <View style={[s.toggleThumb, impulseEnabled && s.toggleThumbOn]} />
+            <View style={[s.toggle, impulseEnabled && { backgroundColor: accentDim, borderWidth: 1, borderColor: accentBorder }]}>
+              <View style={[s.toggleThumb, impulseEnabled && { backgroundColor: accent, alignSelf: 'flex-end' }]} />
             </View>
           </View>
         </TouchableOpacity>
@@ -280,7 +289,6 @@ const s = StyleSheet.create({
   },
   inlineBtnText: {
     fontSize: 14,
-    color: C.goldBright,
     letterSpacing: 0.3,
     opacity: 0.85,
   },
