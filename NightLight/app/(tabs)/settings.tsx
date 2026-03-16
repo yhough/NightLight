@@ -159,15 +159,22 @@ export default function SettingsScreen() {
                 ? homeByTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
                 : 'Not set'}
             </Text>
-            <TouchableOpacity onPress={() => setEditingTime(e => !e)}>
+            <TouchableOpacity onPress={() => {
+              if (!homeByTime) {
+                const d = new Date();
+                d.setHours(1, 0, 0, 0);
+                setHomeByTime(d);
+              }
+              setEditingTime(e => !e);
+            }}>
               <Text style={[s.inlineBtnText, { fontFamily: font, color: accent }]}>
                 {editingTime ? 'Done' : 'Change'}
               </Text>
             </TouchableOpacity>
           </View>
-          {editingTime && (
+          {editingTime && homeByTime && (
             <DateTimePicker
-              value={homeByTime ?? (() => { const d = new Date(); d.setHours(1, 0, 0, 0); return d; })()}
+              value={homeByTime}
               mode="time"
               display="spinner"
               onChange={(_, selected) => selected && setHomeByTime(selected)}
