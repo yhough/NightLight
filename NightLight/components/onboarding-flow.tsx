@@ -2,6 +2,7 @@ import * as Location from 'expo-location';
 import { useFonts } from 'expo-font';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef, useState } from 'react';
+import { useNightMode } from '@/context/night-mode';
 import {
   Animated,
   KeyboardAvoidingView,
@@ -30,17 +31,7 @@ const C = {
 
 const TOTAL_STEPS = 6;
 
-interface Contact {
-  id: string;
-  name: string;
-  phone: string;
-}
-
-interface OnboardingData {
-  homeAddress: string;
-  contacts: Contact[];
-  impulseEnabled: boolean;
-}
+import type { Contact } from '@/context/night-mode';
 
 // ── Progress dots ────────────────────────────────────────────────────────────
 function Dots({ step }: { step: number }) {
@@ -168,30 +159,36 @@ function LocationScreen({
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-      <View style={sc.screen}>
-        <View style={sc.center}>
-          <Text style={sc.icon}>🏠</Text>
-          <Text style={[sc.headline, { fontFamily: font }]}>Where's home?</Text>
-          <Text style={[sc.sub, { fontFamily: font }]}>
-            We'll check in here at the end of your night.
-          </Text>
-          <TextInput
-            style={[sc.input, { fontFamily: font }]}
-            placeholder="Your home address"
-            placeholderTextColor={C.muted}
-            value={homeAddress}
-            onChangeText={setHomeAddress}
-            autoCorrect={false}
-          />
-          {error ? <Text style={[sc.errorText, { fontFamily: font }]}>{error}</Text> : null}
-          <TouchableOpacity onPress={useCurrentLocation} style={sc.secondaryBtn}>
-            <Text style={[sc.secondaryBtnText, { fontFamily: font }]}>
-              {loading ? 'Getting location…' : '📍 Use my current location'}
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={sc.screen}>
+          <View style={sc.center}>
+            <Text style={sc.icon}>🏠</Text>
+            <Text style={[sc.headline, { fontFamily: font }]}>Where's home?</Text>
+            <Text style={[sc.sub, { fontFamily: font }]}>
+              We'll check in here at the end of your night.
             </Text>
-          </TouchableOpacity>
+            <TextInput
+              style={[sc.input, { fontFamily: font }]}
+              placeholder="Your home address"
+              placeholderTextColor={C.muted}
+              value={homeAddress}
+              onChangeText={setHomeAddress}
+              autoCorrect={false}
+            />
+            {error ? <Text style={[sc.errorText, { fontFamily: font }]}>{error}</Text> : null}
+            <TouchableOpacity onPress={useCurrentLocation} style={sc.secondaryBtn}>
+              <Text style={[sc.secondaryBtnText, { fontFamily: font }]}>
+                {loading ? 'Getting location…' : '📍 Use my current location'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <CTAButton label="This is home →" onPress={onNext} />
         </View>
-        <CTAButton label="This is home →" onPress={onNext} />
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -223,7 +220,7 @@ function SafeCircleScreen({
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
         <View style={sc.screen}>
           <View style={sc.center}>
             <Text style={sc.icon}>🫂</Text>
@@ -359,11 +356,14 @@ export default function OnboardingFlow({ onComplete }: Props) {
     Archive: require('@/assets/fonts/Archive.ttf'),
   });
 
+  const {
+    homeAddress, setHomeAddress,
+    contacts, setContacts,
+    impulseEnabled, setImpulseEnabled,
+  } = useNightMode();
+
   const [step, setStep] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
-  const [homeAddress, setHomeAddress] = useState('');
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [impulseEnabled, setImpulseEnabled] = useState(false);
 
   const goTo = (next: number) => {
     Animated.timing(fadeAnim, { toValue: 0, duration: 160, useNativeDriver: true }).start(() => {
