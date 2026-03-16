@@ -4,6 +4,7 @@ export interface Contact {
   id: string;
   name: string;
   phone: string;
+  imageUri?: string;
 }
 
 interface AppState {

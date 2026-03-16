@@ -1,10 +1,12 @@
 import * as Location from 'expo-location';
+import * as Contacts from 'expo-contacts';
 import { useFonts } from 'expo-font';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef, useState } from 'react';
 import { useNightMode } from '@/context/night-mode';
 import {
   Animated,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -32,6 +34,26 @@ const C = {
 const TOTAL_STEPS = 6;
 
 import type { Contact } from '@/context/night-mode';
+
+async function pickContact(): Promise<{ name: string; phone: string; imageUri?: string } | null> {
+  const { status } = await Contacts.requestPermissionsAsync();
+  if (status !== 'granted') return null;
+  const result = await Contacts.presentContactPickerAsync();
+  if (!result) return null;
+  const name = result.name || [result.firstName, result.lastName].filter(Boolean).join(' ') || '';
+  const phone = result.phoneNumbers?.[0]?.number ?? '';
+  // Use image from picker result if available
+  let imageUri: string | undefined = result.image?.uri ?? result.thumbnail?.uri;
+  if (!imageUri && result.id) {
+    try {
+      const full = await Contacts.getContactByIdAsync(result.id, [Contacts.Fields.Image, Contacts.Fields.Thumbnail]);
+      imageUri = full?.image?.uri ?? full?.thumbnail?.uri;
+    } catch {
+      // image unavailable — fallback to initial avatar
+    }
+  }
+  return { name, phone, imageUri };
+}
 
 // ── Progress dots ────────────────────────────────────────────────────────────
 function Dots({ step }: { step: number }) {
@@ -205,13 +227,11 @@ function SafeCircleScreen({
   contacts: Contact[];
   setContacts: (c: Contact[]) => void;
 }) {
-  const addContact = () => {
+  const handleAdd = async () => {
     if (contacts.length >= 3) return;
-    setContacts([...contacts, { id: Date.now().toString(), name: '', phone: '' }]);
-  };
-
-  const updateContact = (id: string, field: 'name' | 'phone', value: string) => {
-    setContacts(contacts.map(c => c.id === id ? { ...c, [field]: value } : c));
+    const picked = await pickContact();
+    if (!picked) return;
+    setContacts([...contacts, { id: Date.now().toString(), name: picked.name, phone: picked.phone, imageUri: picked.imageUri }]);
   };
 
   const removeContact = (id: string) => {
@@ -219,53 +239,43 @@ function SafeCircleScreen({
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
-        <View style={sc.screen}>
-          <View style={sc.center}>
-            <Text style={sc.icon}>🫂</Text>
-            <Text style={[sc.headline, { fontFamily: font }]}>Who's got your back?</Text>
-            <Text style={[sc.sub, { fontFamily: font }]}>
-              Add 1–3 people to reach if something feels off.{'\n'}They'll only hear from us if you ask.
-            </Text>
+    <View style={sc.screen}>
+      <View style={sc.center}>
+        <Text style={sc.icon}>🫂</Text>
+        <Text style={[sc.headline, { fontFamily: font }]}>Who's got your back?</Text>
+        <Text style={[sc.sub, { fontFamily: font }]}>
+          Add 1–3 people to reach if something feels off.{'\n'}They'll only hear from us if you ask.
+        </Text>
 
-            {contacts.map((c, i) => (
-              <View key={c.id} style={sc.contactCard}>
-                <View style={sc.contactHeader}>
-                  <Text style={[sc.contactLabel, { fontFamily: font }]}>Contact {i + 1}</Text>
-                  <TouchableOpacity onPress={() => removeContact(c.id)}>
-                    <Text style={[sc.removeText, { fontFamily: font }]}>Remove</Text>
-                  </TouchableOpacity>
+        {contacts.map((c) => (
+          <View key={c.id} style={sc.contactCard}>
+            <View style={sc.contactHeader}>
+              <View style={sc.contactLeft}>
+                {c.imageUri
+                  ? <Image source={{ uri: c.imageUri }} style={sc.avatar} resizeMode="cover" />
+                  : <View style={sc.avatarFallback}><Text style={[sc.avatarInitial, { fontFamily: font }]}>{c.name?.[0]?.toUpperCase() ?? '?'}</Text></View>
+                }
+                <View>
+                  <Text style={[sc.contactName, { fontFamily: font }]}>{c.name || 'Unknown'}</Text>
+                  <Text style={[sc.contactPhone, { fontFamily: font }]}>{c.phone || '—'}</Text>
                 </View>
-                <TextInput
-                  style={[sc.input, { fontFamily: font, marginBottom: 8 }]}
-                  placeholder="Name"
-                  placeholderTextColor={C.muted}
-                  value={c.name}
-                  onChangeText={v => updateContact(c.id, 'name', v)}
-                />
-                <TextInput
-                  style={[sc.input, { fontFamily: font }]}
-                  placeholder="Phone number"
-                  placeholderTextColor={C.muted}
-                  value={c.phone}
-                  onChangeText={v => updateContact(c.id, 'phone', v)}
-                  keyboardType="phone-pad"
-                />
               </View>
-            ))}
-
-            {contacts.length < 3 && (
-              <TouchableOpacity onPress={addContact} style={sc.addBtn}>
-                <Text style={[sc.addBtnText, { fontFamily: font }]}>+ Add a contact</Text>
+              <TouchableOpacity onPress={() => removeContact(c.id)}>
+                <Text style={[sc.removeText, { fontFamily: font }]}>Remove</Text>
               </TouchableOpacity>
-            )}
+            </View>
           </View>
-          <CTAButton label="Continue →" onPress={onNext} />
-          {contacts.length === 0 && <SkipButton label="Skip for now" onPress={onNext} font={font} />}
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        ))}
+
+        {contacts.length < 3 && (
+          <TouchableOpacity onPress={handleAdd} style={sc.addBtn}>
+            <Text style={[sc.addBtnText, { fontFamily: font }]}>+ Add from contacts</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+      <CTAButton label="Continue →" onPress={onNext} />
+      {contacts.length === 0 && <SkipButton label="Skip for now" onPress={onNext} font={font} />}
+    </View>
   );
 }
 
@@ -596,6 +606,42 @@ const sc = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
+  },
+  contactLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+  },
+  avatarFallback: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(232,176,48,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(232,176,48,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitial: {
+    fontSize: 18,
+    color: C.goldBright,
+  },
+  contactName: {
+    fontSize: 15,
+    color: C.white,
+    letterSpacing: 0.2,
+  },
+  contactPhone: {
+    fontSize: 13,
+    color: C.muted,
+    marginTop: 2,
+    letterSpacing: 0.2,
   },
   contactLabel: {
     fontSize: 12,

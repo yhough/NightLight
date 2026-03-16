@@ -1,8 +1,10 @@
 import * as Location from 'expo-location';
+import * as Contacts from 'expo-contacts';
 import { useFonts } from 'expo-font';
 import { useState } from 'react';
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -66,13 +68,25 @@ export default function SettingsScreen() {
     setLocLoading(false);
   };
 
-  const addContact = () => {
+  const addContact = async () => {
     if (contacts.length >= 3) return;
-    setContacts([...contacts, { id: Date.now().toString(), name: '', phone: '' }]);
-  };
-
-  const updateContact = (id: string, field: 'name' | 'phone', value: string) => {
-    setContacts(contacts.map(c => c.id === id ? { ...c, [field]: value } : c));
+    const { status } = await Contacts.requestPermissionsAsync();
+    if (status !== 'granted') return;
+    const result = await Contacts.presentContactPickerAsync();
+    if (!result) return;
+    const name = result.name || [result.firstName, result.lastName].filter(Boolean).join(' ') || '';
+    const phone = result.phoneNumbers?.[0]?.number ?? '';
+    // Use image from picker result if available
+    let imageUri: string | undefined = result.image?.uri ?? result.thumbnail?.uri;
+    if (!imageUri && result.id) {
+      try {
+        const full = await Contacts.getContactByIdAsync(result.id, [Contacts.Fields.Image, Contacts.Fields.Thumbnail]);
+        imageUri = full?.image?.uri ?? full?.thumbnail?.uri;
+      } catch {
+        // image unavailable — fallback to initial avatar
+      }
+    }
+    setContacts([...contacts, { id: Date.now().toString(), name, phone, imageUri }]);
   };
 
   const removeContact = (id: string) => {
@@ -134,26 +148,20 @@ export default function SettingsScreen() {
           {contacts.map((c, i) => (
             <View key={c.id} style={[s.contactBlock, i > 0 && s.contactDivider]}>
               <View style={s.contactHeaderRow}>
-                <Text style={[s.contactLabel, { fontFamily: font }]}>Contact {i + 1}</Text>
+                <View style={s.contactInfo}>
+                  {c.imageUri
+                    ? <Image source={{ uri: c.imageUri }} style={s.avatar} resizeMode="cover" />
+                    : <View style={s.avatarFallback}><Text style={[s.avatarInitial, { fontFamily: font }]}>{c.name?.[0]?.toUpperCase() ?? '?'}</Text></View>
+                  }
+                  <View>
+                    <Text style={[s.contactName, { fontFamily: font }]}>{c.name || 'Unknown'}</Text>
+                    <Text style={[s.contactPhone, { fontFamily: font }]}>{c.phone || '—'}</Text>
+                  </View>
+                </View>
                 <TouchableOpacity onPress={() => removeContact(c.id)}>
                   <Text style={[s.removeText, { fontFamily: font }]}>Remove</Text>
                 </TouchableOpacity>
               </View>
-              <TextInput
-                style={[s.input, { fontFamily: font, marginBottom: 8 }]}
-                placeholder="Name"
-                placeholderTextColor={C.muted}
-                value={c.name}
-                onChangeText={v => updateContact(c.id, 'name', v)}
-              />
-              <TextInput
-                style={[s.input, { fontFamily: font }]}
-                placeholder="Phone number"
-                placeholderTextColor={C.muted}
-                value={c.phone}
-                onChangeText={v => updateContact(c.id, 'phone', v)}
-                keyboardType="phone-pad"
-              />
             </View>
           ))}
           {contacts.length < 3 && (
@@ -257,10 +265,45 @@ const s = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
+  contactInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  avatarFallback: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(232,176,48,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(232,176,48,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitial: {
+    fontSize: 16,
+    color: '#F5C842',
+  },
   contactLabel: {
     fontSize: 11,
     color: C.muted,
     letterSpacing: 1.5,
+  },
+  contactName: {
+    fontSize: 15,
+    color: C.white,
+    letterSpacing: 0.2,
+  },
+  contactPhone: {
+    fontSize: 13,
+    color: C.muted,
+    marginTop: 2,
+    letterSpacing: 0.2,
   },
   removeText: {
     fontSize: 12,
