@@ -12,6 +12,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import MessageQueue from '@/components/message-queue';
 
@@ -124,19 +125,20 @@ function ActivateButton({
       if (finished) {
         didComplete.current = true;
         Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        if (activeRef.current) {
+          activeRef.current = false;
+          onDeactivate();
+        } else {
+          activeRef.current = true;
+          onActivate();
+        }
       }
     });
   };
 
   const handleRelease = () => {
     if (didComplete.current) {
-      if (activeRef.current) {
-        activeRef.current = false;
-        onDeactivate();
-      } else {
-        activeRef.current = true;
-        onActivate();
-      }
       return;
     }
     holdAnim.current?.stop();

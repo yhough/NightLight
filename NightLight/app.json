@@ -30,6 +30,12 @@
       "./plugins/withShareExtension",
       "expo-router",
       [
+        "expo-notifications",
+        {
+          "iosDisplayInForeground": true
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
