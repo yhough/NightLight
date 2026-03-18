@@ -25,6 +25,7 @@ import {
   ACTION_EXTEND,
   ACTION_SEND,
 } from '@/utils/check-in';
+import { createSession, recordSafe, recordExtend, endSession } from '@/utils/api';
 
 // Show notifications as banners even when the app is in the foreground
 Notifications.setNotificationHandler({
@@ -49,6 +50,12 @@ function AppShell() {
   const [emergencyVisible, setEmergencyVisible] = useState(false);
   const appStateRef = useRef(AppState.currentState);
 
+  // Track the live backend session ID so notification handlers can reference it
+  const sessionIdRef = useRef<string | null>(null);
+  // Keep a live ref to contacts so the session effect doesn't stale-close over them
+  const contactsRef = useRef(contacts);
+  useEffect(() => { contactsRef.current = contacts; }, [contacts]);
+
   const handleLogout = () => {
     setOnboarded(false);
   };
@@ -59,12 +66,32 @@ function AppShell() {
     setupNotificationCategories();
   }, []);
 
-  // Schedule / cancel check-ins whenever active or homeByTime changes
+  // Schedule / cancel check-ins and sync with backend whenever active or homeByTime changes
   useEffect(() => {
     if (active && homeByTime) {
       scheduleCheckIns(homeByTime);
+
+      // Create a backend session — runs in parallel with local notifications.
+      // If the backend is unreachable, local notifications still work normally.
+      createSession({
+        homeByTime,
+        contacts: contactsRef.current.map(c => ({ name: c.name, phone: c.phone })),
+      })
+        .then(({ sessionId }) => {
+          sessionIdRef.current = sessionId;
+          console.log(`[NightLight] Backend session created: ${sessionId}`);
+        })
+        .catch(err => {
+          console.warn('[NightLight] Backend session creation failed (SMS escalation disabled):', err.message);
+        });
     } else {
       cancelCheckIns();
+
+      // End the backend session if one exists
+      if (sessionIdRef.current) {
+        endSession(sessionIdRef.current).catch(() => {});
+        sessionIdRef.current = null;
+      }
     }
   }, [active, homeByTime]);
 
@@ -77,12 +104,21 @@ function AppShell() {
       if (actionId === ACTION_HOME || actionId === Notifications.DEFAULT_ACTION_IDENTIFIER) {
         if (data?.type === 'checkin') {
           cancelCheckIns();
+          // Tell backend the user is safe — cancels SMS timers
+          if (sessionIdRef.current) {
+            recordSafe(sessionIdRef.current).catch(() => {});
+            sessionIdRef.current = null;
+          }
         } else if (data?.type === 'emergency') {
           clearEmergencyPending();
           setEmergencyVisible(true);
         }
       } else if (actionId === ACTION_EXTEND) {
         extendCheckIns();
+        // Tell backend to reschedule its escalation +30 min
+        if (sessionIdRef.current) {
+          recordExtend(sessionIdRef.current).catch(() => {});
+        }
       } else if (actionId === ACTION_SEND) {
         clearEmergencyPending();
         setEmergencyVisible(true);
@@ -148,10 +184,18 @@ function AppShell() {
         onDismiss={() => {
           setEmergencyVisible(false);
           cancelCheckIns();
+          if (sessionIdRef.current) {
+            endSession(sessionIdRef.current).catch(() => {});
+            sessionIdRef.current = null;
+          }
         }}
         onSend={async () => {
           setEmergencyVisible(false);
           cancelCheckIns();
+          if (sessionIdRef.current) {
+            endSession(sessionIdRef.current).catch(() => {});
+            sessionIdRef.current = null;
+          }
           await sendEmergencyMessages(contacts);
         }}
       />

@@ -48,3 +48,21 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+---
+
+## SMS Messaging & Consent (Twilio)
+
+NightLight uses Twilio to send SMS notifications to a user's Safe Circle contacts when a check-in is missed.
+
+**Proof of Consent**
+
+Safe Circle contacts are designated by the primary user but must independently opt in before receiving any NightLight SMS alerts. Each contact receives an invitation and completes a separate web-based consent form that clearly explains:
+
+- **Who** is sending the messages (the NightLight service on behalf of the inviting user)
+- **What** they are consenting to (transactional missed-check-in notifications only — no marketing or promotional messages)
+- **How** to stop receiving messages at any time by replying **STOP** to any message
+
+No SMS messages are sent to a contact until their explicit opt-in is recorded. Contacts may also reply **HELP** for assistance or reach out through the app's support channel. Message and data rates may apply.
+
+This consent model complies with Twilio's messaging policy and applicable regulations (TCPA, CTIA guidelines).
