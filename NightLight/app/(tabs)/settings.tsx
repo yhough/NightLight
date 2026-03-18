@@ -229,6 +229,8 @@ export default function SettingsScreen() {
         <Pressable onPress={handleLogout} style={s.logoutBtn}>
           <Text style={[s.logoutText, { fontFamily: font }]}>Log out</Text>
         </Pressable>
+
+        <Text style={[s.footer, { fontFamily: font }]}>made with ♡ by Yaelin</Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -371,5 +373,12 @@ const s = StyleSheet.create({
     fontSize: 15,
     color: C.danger,
     letterSpacing: 1,
+  },
+  footer: {
+    marginTop: 32,
+    textAlign: 'center',
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.2)',
+    letterSpacing: 0.5,
   },
 });

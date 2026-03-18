@@ -350,8 +350,6 @@ export default function HomeScreen() {
         }}
       />
 
-      {/* Footer */}
-      <Text style={[sc.footer, { fontFamily: 'Archive' }]}>made with ♡ by Yaelin</Text>
     </LinearGradient>
   );
 }
@@ -446,13 +444,6 @@ const sc = StyleSheet.create({
     color: C.violetBright,
     marginLeft: 2,
     lineHeight: 20,
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 20,
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.2)',
-    letterSpacing: 0.5,
   },
 });
 
