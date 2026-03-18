@@ -83,7 +83,14 @@ function ActivateButton({
   const holdAnim = useRef<Animated.CompositeAnimation | null>(null);
   const didComplete = useRef(false);
   const activeRef = useRef(active);
-  useEffect(() => { activeRef.current = active; }, [active]);
+  useEffect(() => {
+    activeRef.current = active;
+    // If deactivated externally (not via button hold), reset the fill so the
+    // next hold-to-activate works correctly.
+    if (!active) {
+      fill.setValue(0);
+    }
+  }, [active]);
 
   useEffect(() => {
     if (active) {

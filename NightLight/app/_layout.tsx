@@ -112,17 +112,19 @@ function AppShell() {
     if (!active || !homeByTime || !homeCoords) return;
 
     const HOME_RADIUS_M = 150;
+    let cancelled = false;
 
     const checkLocation = async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') return;
+        if (status !== 'granted' || cancelled) return;
         const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        if (cancelled) return;
         const dist = haversineMeters(
           loc.coords.latitude, loc.coords.longitude,
           homeCoords.latitude, homeCoords.longitude,
         );
-        if (dist <= HOME_RADIUS_M) {
+        if (dist <= HOME_RADIUS_M && !cancelled) {
           setActive(false);
         }
       } catch {
@@ -130,7 +132,11 @@ function AppShell() {
       }
     };
 
-    const msRemaining = homeByTime.getTime() - Date.now();
+    // If the stored time-of-day has already passed today, target tomorrow instead.
+    let msRemaining = homeByTime.getTime() - Date.now();
+    if (msRemaining < 0) {
+      msRemaining += 24 * 60 * 60 * 1000;
+    }
 
     // Wait until homeByTime, then start polling every 60 s until home
     let pollInterval: ReturnType<typeof setInterval> | null = null;
@@ -148,6 +154,7 @@ function AppShell() {
     }
 
     return () => {
+      cancelled = true;
       if (kickoffTimer) clearTimeout(kickoffTimer);
       if (pollInterval) clearInterval(pollInterval);
     };
