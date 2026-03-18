@@ -351,7 +351,7 @@ export default function HomeScreen() {
       />
 
       {/* Footer */}
-      <Text style={[sc.footer, { fontFamily: 'Archive' }]}>made with ♥ by Yaelin</Text>
+      <Text style={[sc.footer, { fontFamily: 'Archive' }]}>made with ♡ by Yaelin</Text>
     </LinearGradient>
   );
 }

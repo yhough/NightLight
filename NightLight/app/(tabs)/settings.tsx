@@ -54,6 +54,7 @@ export default function SettingsScreen() {
   const {
     active,
     homeAddress, setHomeAddress,
+    homeCoords, setHomeCoords,
     homeByTime, setHomeByTime,
     contacts, setContacts,
     logout,
@@ -81,6 +82,7 @@ export default function SettingsScreen() {
         geo.postalCode,
       ].filter(Boolean).join(', ');
       setHomeAddress(addr);
+      setHomeCoords({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
     } catch {}
     setLocLoading(false);
   };

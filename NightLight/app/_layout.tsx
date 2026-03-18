@@ -4,8 +4,20 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import 'react-native-reanimated';
 import * as Linking from 'expo-linking';
+import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import { AppState } from 'react-native';
+
+function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6_371_000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 import LoadingScreen from '@/components/loading-screen';
 import OnboardingFlow from '@/components/onboarding-flow';
@@ -43,7 +55,7 @@ export const unstable_settings = {
 
 function AppShell() {
   const colorScheme = useColorScheme();
-  const { setLogout, active, homeByTime, contacts } = useNightMode();
+  const { setLogout, active, setActive, homeByTime, homeCoords, contacts } = useNightMode();
   const [showLoader, setShowLoader] = useState(true);
   const [onboarded, setOnboarded] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
@@ -94,6 +106,52 @@ function AppShell() {
       }
     }
   }, [active, homeByTime]);
+
+  // Auto-deactivate once homeByTime has passed AND the user is near home
+  useEffect(() => {
+    if (!active || !homeByTime || !homeCoords) return;
+
+    const HOME_RADIUS_M = 150;
+
+    const checkLocation = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') return;
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        const dist = haversineMeters(
+          loc.coords.latitude, loc.coords.longitude,
+          homeCoords.latitude, homeCoords.longitude,
+        );
+        if (dist <= HOME_RADIUS_M) {
+          setActive(false);
+        }
+      } catch {
+        // location unavailable — keep session running
+      }
+    };
+
+    const msRemaining = homeByTime.getTime() - Date.now();
+
+    // Wait until homeByTime, then start polling every 60 s until home
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
+
+    const onTimeReached = () => {
+      checkLocation();
+      pollInterval = setInterval(checkLocation, 60_000);
+    };
+
+    let kickoffTimer: ReturnType<typeof setTimeout> | null = null;
+    if (msRemaining <= 0) {
+      onTimeReached();
+    } else {
+      kickoffTimer = setTimeout(onTimeReached, msRemaining);
+    }
+
+    return () => {
+      if (kickoffTimer) clearTimeout(kickoffTimer);
+      if (pollInterval) clearInterval(pollInterval);
+    };
+  }, [active, homeByTime, homeCoords]);
 
   // Handle notification action button responses
   useEffect(() => {

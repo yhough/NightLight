@@ -154,11 +154,13 @@ function LocationScreen({
   font,
   homeAddress,
   setHomeAddress,
+  setHomeCoords,
 }: {
   onNext: () => void;
   font: string;
   homeAddress: string;
   setHomeAddress: (v: string) => void;
+  setHomeCoords: (v: { latitude: number; longitude: number } | null) => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -179,6 +181,7 @@ function LocationScreen({
         geo.postalCode,
       ].filter(Boolean).join(', ');
       setHomeAddress(addr);
+      setHomeCoords({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
     } catch {
       setError('Could not get location. Try entering it manually.');
     }
@@ -365,6 +368,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
 
   const {
     homeAddress, setHomeAddress,
+    homeCoords, setHomeCoords,
     homeByTime, setHomeByTime,
     contacts, setContacts,
   } = useNightMode();
@@ -401,6 +405,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
             font={font}
             homeAddress={homeAddress}
             setHomeAddress={setHomeAddress}
+            setHomeCoords={setHomeCoords}
           />
         )}
         {step === 3 && (
